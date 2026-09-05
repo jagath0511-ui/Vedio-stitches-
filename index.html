@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Upscaler 1080P & 2160P</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        select, input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: #0f172a;
+            font-weight: 700;
+            padding: 0.85rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+            color: #ffffff;
+        }
+
+        .dropzone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background-color: #0f172a;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: 1.5rem;
+        }
+
+        .dropzone:hover {
+            border-color: var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .badge {
+            background-color: #0369a1;
+            color: #e0f2fe;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        pre {
+            background-color: #0f172a;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            color: #38bdf8;
+            font-family: monospace;
+        }
+
+        .output-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #0f172a;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ Media Upscaler <span class="badge">1080P & 2160P 4K</span></h1>
+    </header>
+
+    <div class="container">
+        <section class="hero">
+            <h2>High-Quality Image & Video Upscaling</h2>
+            <p>Upscale static images and videos to Crisp 1080P or Ultra HD 2160P (4K) using Lanczos high-quality resampling filters.</p>
+        </section>
+
+        <main class="grid">
+            <div class="card">
+                <h3>Interactive Upscale Configurator</h3>
+                <form id="upscale-form">
+                    <div class="form-group">
+                        <label>Select Media File (Image or Video)</label>
+                        <div class="dropzone" id="dropzone">
+                            <p>📁 Drag and drop image/video or click to browse</p>
+                            <input type="file" id="file-input" style="display: none;" accept="image/*,video/*">
+                            <span id="file-name" style="color: var(--accent); font-weight: 600;"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="resolution">Target Resolution</label>
+                        <select id="resolution">
+                            <option value="1080p">1080P Full HD (1920 x 1080)</option>
+                            <option value="2160p">2160P 4K Ultra HD (3840 x 2160)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mode">Aspect Ratio Mode</label>
+                        <select id="mode">
+                            <option value="pad">Pad / Letterbox (Preserve aspect ratio with padding)</option>
+                            <option value="fit">Fit (Fit within target bounds)</option>
+                            <option value="crop">Crop (Center crop to target dimensions)</option>
+                            <option value="stretch">Stretch (Fill exact dimensions)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn">Generate CLI Command</button>
+                </form>
+
+                <div id="output-box" class="output-box">
+                    <label>Command Line Usage:</label>
+                    <pre id="command-output"></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>CLI Quick Reference</h3>
+                <p>Run the upscale CLI tool directly from your terminal:</p>
+
+                <label>Upscale Image to 1080P:</label>
+                <pre>python upscale.py -i photo.jpg -o photo_1080p.jpg -r 1080p</pre>
+
+                <label>Upscale Video to 4K (2160P) with Padding:</label>
+                <pre>python upscale.py -i video.mp4 -o video_4k.mp4 -r 2160p -m pad</pre>
+
+                <label>Supported Formats:</label>
+                <ul>
+                    <li><strong>Images:</strong> PNG, JPG, WEBP, BMP, TIFF, GIF</li>
+                    <li><strong>Videos:</strong> MP4, MOV, MKV, AVI, WEBM, FLV</li>
+                </ul>
+            </div>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; Media Upscaler Tool. Powered by Pillow & FFmpeg.</p>
+    </footer>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const form = document.getElementById('upscale-form');
+        const outputBox = document.getElementById('output-box');
+        const commandOutput = document.getElementById('command-output');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#38bdf8';
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.style.borderColor = '#334155';
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#334155';
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileName);
+
+        function updateFileName() {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = 'Selected: ' + fileInput.files[0].name;
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const file = fileInput.files.length > 0 ? fileInput.files[0].name : 'input_media.mp4';
+            const res = document.getElementById('resolution').value;
+            const mode = document.getElementById('mode').value;
+
+            const ext = file.substring(file.lastIndexOf('.'));
+            const name = file.substring(0, file.lastIndexOf('.')) || 'input';
+            const outFile = `${name}_${res}${ext}`;
+
+            const cmd = `python upscale.py -i "${file}" -o "${outFile}" -r ${res} -m ${mode}`;
+            commandOutput.textContent = cmd;
+            outputBox.style.display = 'block';
+        });
+    </script>
+</body>
+</html>

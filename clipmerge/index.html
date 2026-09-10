@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClipMerge AI - Smart Video Stitching & Script Storyboard Suite</title>
+  <meta name="description" content="Merge multiple video clips directly in your browser using FFmpeg.wasm and Google Gemini AI script-to-video alignment. Integrated with Firebase, Google Calendar, and Gmail.">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- FFmpeg.wasm v0.12+ Scripts (Local instant load with CDN fallback) -->
+  <script src="./ffmpeg-core/ffmpeg.js"></script>
+  <script src="./ffmpeg-core/index.js"></script>
+  <script>
+    if (!window.FFmpegWASM) {
+      document.write('<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"><\/script>');
+      document.write('<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="#" class="brand" id="brandLogo">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11zm2.5-.5a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5H8V6H6.5zm3.5 0v12h4V6h-4zm6 0v12h1.5a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H16z"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ClipMerge <span class="ai-badge-header">AI Studio</span></h1>
+        </div>
+      </a>
+
+      <!-- Top Navigation Tabs (Stitch & AI Editor, Video Enhancer, Image Enhancer) -->
+      <nav class="app-nav-tabs" id="appNavTabs">
+        <button class="nav-tab active" id="tabStitchEdit" data-view="viewStitchEdit">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11zm2.5-.5a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5H8V6H6.5zm3.5 0v12h4V6h-4zm6 0v12h1.5a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5H16z"/>
+          </svg>
+          <span>Stitch &amp; AI Editor</span>
+        </button>
+        <button class="nav-tab" id="tabVideoEnhance" data-view="viewVideoEnhance">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+          <span>Video Enhancer (1080P &amp; 4K)</span>
+        </button>
+        <button class="nav-tab" id="tabImageEnhance" data-view="viewImageEnhance">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <span>Image Enhancer (1080P &amp; 4K)</span>
+        </button>
+        <button class="nav-tab" id="tabAudioStudio" data-view="viewAudioStudio">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span>🎙️ AI Audio &amp; Voice Studio</span>
+        </button>
+      </nav>
+
+      <!-- Header Actions: Google Account & Settings -->
+      <div class="header-actions">
+        <button class="btn btn-sm btn-secondary" id="btnGoogleAuth" title="Connect Google Workspace (Calendar & Gmail)">
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span id="googleAuthText">Workspace</span>
+        </button>
+
+        <button class="btn btn-sm btn-secondary" id="btnOpenSettings" title="Configure Gemini AI & Firebase">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          Settings
+        </button>
+
+        <span class="badge-client-only">100% Client-Side</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Area -->
+  <main class="main-wrapper">
+
+    <!-- ====================================================================
+         VIEW 1: STITCH & AI EDITOR (Core Stitching + Embedded Gemini Studio)
+         ==================================================================== -->
+    <div id="viewStitchEdit" class="app-view active">
+
+    <!-- 1. EMPTY STATE -->
+    <section id="stateEmpty" class="app-state active">
+      <div class="hero-section">
+        <h2 class="hero-title">Merge Video Clips <span class="hero-gradient">Directly in Your Browser</span></h2>
+        <p class="hero-subtitle">
+          Upload raw video clips and an optional narrative script. Gemini AI keeps them in a line along your script story, stitched via client-side WebAssembly with zero server uploads!
+        </p>
+
+        <div class="feature-pills">
+          <span class="feature-pill">🤖 Gemini AI Script-to-Video Alignment</span>
+          <span class="feature-pill">⚡ Fast Stream Copy (0s re-encode)</span>
+          <span class="feature-pill">📅 Google Calendar Scheduling</span>
+          <span class="feature-pill">✉️ Gmail Share Integration</span>
+          <span class="feature-pill">☁️ Firebase Cloud Sync</span>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzoneArea">
+        <input type="file" id="fileInput" class="hidden-file-input" multiple accept="video/*,.mp4,.mov,.avi,.mkv">
+        <div class="dropzone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <h3 class="dropzone-title">Drop your raw video clips here</h3>
+        <p class="dropzone-desc">Drag and drop multiple video files, or <strong style="color: var(--accent-primary);">click to browse</strong></p>
+        <p class="supported-formats">Accepts MP4, MOV, AVI, MKV • Auto-sorts clip1 to clip30+ or aligns to script</p>
+      </div>
+
+      <!-- Quick Demo Buttons -->
+      <div style="margin-top: 1.5rem; text-align: center; display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+        <button class="btn btn-secondary" id="btnLoadMatchingDemo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Load 3 Clips (Quick Demo)
+        </button>
+        <button class="btn btn-primary" id="btnLoad25Demo" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+          </svg>
+          Load 25 Clips (Batch Demo 🚀)
+        </button>
+        <button class="btn btn-secondary" id="btnLoad30Demo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+          Load All 30 Clips (Full Suite 🎬)
+        </button>
+        <button class="btn btn-secondary" id="btnLoadMismatchDemo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          Load Mismatched Clips (Transcode Demo)
+        </button>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <p style="font-size: 0.8125rem; color: var(--text-muted);">
+          💡 Offline WebAssembly Engine: all ffmpeg-core files are hosted locally on your machine for zero-latency processing.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. LOADED STATE: INTEGRATED EDITING STUDIO (GEMINI DIRECTLY INSIDE EDITING PHASE) -->
+    <section id="stateLoaded" class="app-state">
+      <div class="editing-studio-grid">
+
+        <!-- LEFT COLUMN: AI SCRIPT & SHOT DIRECTOR (EMBEDDED DIRECTLY IN EDITING) -->
+        <aside class="story-director-panel">
+          <div class="director-header">
+            <div class="director-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>AI Script &amp; Shot Director</span>
+            </div>
+            <span class="ai-tag">Gemini Intelligence</span>
+          </div>
+
+          <p class="director-hint">
+            Type or paste shot prompts below (e.g. <em>Shot 1: Hook, Shot 2: Demo...</em>). Gemini intelligence automatically separates and aligns your video clips into the timeline line as you type!
+          </p>
+
+          <!-- Inline Gemini API Key Setup -->
+          <div class="gemini-inline-box">
+            <div class="gemini-inline-header">
+              <span class="gemini-inline-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Gemini API Key:
+              </span>
+              <span id="geminiInlineStatus" class="gemini-status-badge">Smart Local Matcher</span>
+            </div>
+            <div class="gemini-inline-input-row">
+              <input type="password" id="geminiKeyInline" class="form-input-sm" placeholder="Paste Gemini API Key (or use smart matcher)">
+              <button class="btn btn-xs btn-primary" id="btnSaveGeminiKeyInline">Connect</button>
+            </div>
+          </div>
+
+          <!-- Script / Shot Prompt Textarea -->
+          <div class="script-input-container">
+            <textarea id="scriptText" class="director-textarea" placeholder="Shot 1: Introduction - Show opening hook & product shot...
+Shot 2: Core Walkthrough - Screen recording of the features...
+Shot 3: Speed Benchmark - Fast demonstration of real-time performance...
+Shot 4: Call to Action - Outro with final download link..."></textarea>
+          </div>
+
+          <div class="director-actions-bar">
+            <div class="script-templates">
+              <span class="template-label">Templates:</span>
+              <button class="btn btn-xs btn-secondary" id="btnTplProduct">Product</button>
+              <button class="btn btn-xs btn-secondary" id="btnTplTutorial">Tutorial</button>
+              <button class="btn btn-xs btn-secondary" id="btnTplStory">Vlog</button>
+            </div>
+
+            <div class="auto-align-status" id="autoAlignStatus">
+              <span>⚡ Auto-aligning clips to shots</span>
+            </div>
+          </div>
+
+          <button class="btn btn-sm btn-secondary" id="btnAlignScript" style="width: 100%; margin-top: 0.5rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Force Re-Align to Shots Now
+          </button>
+
+          <!-- AI Storyboard Visualizer Drawer -->
+          <div class="storyboard-drawer" id="storyboardDrawer" style="display: none; margin-top: 0.75rem;">
+            <div class="storyboard-header">
+              <h5>🎬 Script Storyboard Rationale</h5>
+              <span class="storyboard-status-badge" id="storyboardStatusBadge">Aligned</span>
+            </div>
+            <p id="storyboardRationale" class="storyboard-rationale"></p>
+            <div class="storyboard-grid" id="storyboardGrid"></div>
+          </div>
+        </aside>
+
+        <!-- RIGHT COLUMN: CLIPS TIMELINE & CONTROLS -->
+        <div class="timeline-editor-panel">
+
+          <!-- Summary Stats -->
+          <div class="stats-bar">
+            <div class="stat-card">
+              <span class="stat-label">Total Clips</span>
+              <span class="stat-value" id="statClipCount">0</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Total Size</span>
+              <span class="stat-value" id="statTotalSize">0 MB</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Estimated Duration</span>
+              <span class="stat-value" id="statTotalDuration">0s</span>
+            </div>
+          </div>
+
+          <!-- Auto-sort banner -->
+          <div class="sort-banner" id="sortBanner">
+            <div class="sort-banner-text">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <line x1="1" y1="3" x2="23" y2="3"></line>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+              <span id="sortBannerMsg">Clips ready in timeline sequence</span>
+            </div>
+            <span class="sort-banner-badge" id="sortBadge">Ready</span>
+          </div>
+
+          <!-- Large File Memory Warning (shown if > 500MB) -->
+          <div class="alert-warning" id="memoryWarningBanner" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>
+              <strong>Memory Notice:</strong> Total upload exceeds 500MB. Browser WebAssembly memory is limited; merging may require high system RAM.
+            </span>
+          </div>
+
+          <!-- Compatibility Notice Card -->
+          <div class="compat-card mode-copy" id="compatCard">
+            <div class="compat-icon" id="compatIcon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="compat-content">
+              <h4 id="compatTitle">Stream Copy Concat Mode</h4>
+              <p id="compatDesc">Checking format compatibility across clips...</p>
+            </div>
+          </div>
+
+          <!-- Output Resolution & Video Enhancement Panel (1080P & 2160P 4K) -->
+          <div class="video-enhance-panel">
+            <div class="enhance-panel-header">
+              <div class="enhance-panel-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span>Output Resolution &amp; Video Enhancement (1080P &amp; 4K)</span>
+              </div>
+              <span class="badge-enhance-mode" id="badgeEnhanceStatus">Original Speed</span>
+            </div>
+
+            <div class="enhance-panel-grid">
+              <div class="form-group-enhance">
+                <label for="selectOutputResolution" class="enhance-label">Target Resolution:</label>
+                <select id="selectOutputResolution" class="form-select-enhance">
+                  <option value="original" selected>Original (Fast Stream Copy if matching)</option>
+                  <option value="1080p">1080P Full HD (1920 × 1080)</option>
+                  <option value="2160p">2160P 4K Ultra HD (3840 × 2160)</option>
+                </select>
+              </div>
+
+              <div class="form-group-enhance">
+                <label for="selectAspectMode" class="enhance-label">Aspect Mode:</label>
+                <select id="selectAspectMode" class="form-select-enhance">
+                  <option value="pad" selected>Pad / Letterbox (Preserve Ratio)</option>
+                  <option value="crop">Crop (Center Fill 16:9)</option>
+                  <option value="fit">Fit (Target Bounds)</option>
+                  <option value="stretch">Stretch (Exact Fill)</option>
+                </select>
+              </div>
+
+              <div class="form-group-enhance-toggle">
+                <label class="toggle-checkbox-label">
+                  <input type="checkbox" id="chkEnhanceVideo">
+                  <span>✨ AI/Lanczos Upscaling + Unsharp Masking + Vibrance Boost</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- List Control Bar (Bulk Sort & View Options) -->
+          <div class="list-toolbar">
+            <div class="list-toolbar-title">
+              <span>Clips Sequence Line (<span id="listCountLabel">0</span> items)</span>
+            </div>
+            <div class="list-toolbar-actions">
+              <button class="btn btn-xs btn-secondary" id="btnSortAsc" title="Sort numerically 1 to N">1 → N (Auto)</button>
+              <button class="btn btn-xs btn-secondary" id="btnSortDesc" title="Reverse order N to 1">N → 1</button>
+              <button class="btn btn-xs btn-secondary" id="btnShuffle" title="Shuffle clips sequence">🔀 Shuffle</button>
+              <button class="btn btn-xs btn-secondary" id="btnToggleCompact" title="Toggle compact density view">☰ Compact</button>
+            </div>
+          </div>
+
+          <!-- Clips Drag & Drop Reorderable List (With Inline Scene/Shot Badges) -->
+          <div class="clips-list" id="clipsListContainer"></div>
+
+          <!-- Controls & Action Toolbar -->
+          <div class="controls-bar">
+            <div class="controls-left">
+              <button class="btn btn-secondary" id="btnAddMore">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add More Clips
+              </button>
+              <button class="btn btn-danger-ghost" id="btnClearAll">Clear All</button>
+            </div>
+            <div class="controls-right">
+              <button class="btn btn-primary btn-lg" id="btnMerge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+                Merge Clips Now
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PROCESSING STATE -->
+    <section id="stateProcessing" class="app-state">
+      <div class="processing-card">
+        <!-- Multi-stage Stepper -->
+        <div class="stepper">
+          <div class="step-item active" id="step1">
+            <div class="step-circle">1</div>
+            <span class="step-label">Load Clips</span>
+          </div>
+          <div class="step-item" id="step2">
+            <div class="step-circle">2</div>
+            <span class="step-label">Compatibility</span>
+          </div>
+          <div class="step-item" id="step3">
+            <div class="step-circle">3</div>
+            <span class="step-label">Merge</span>
+          </div>
+          <div class="step-item" id="step4">
+            <div class="step-circle">4</div>
+            <span class="step-label">Done</span>
+          </div>
+        </div>
+
+        <h3 class="stage-title" id="stageTitle">Loading Clips...</h3>
+        <p class="stage-detail" id="stageDetail">Writing clips into browser memory...</p>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-stats">
+            <span id="progressActionText">Initializing...</span>
+            <span id="progressPercentText" style="font-weight: 700;">0%</span>
+          </div>
+        </div>
+
+        <!-- Real-time Collapsible FFmpeg Log Drawer -->
+        <div class="log-drawer">
+          <div class="log-drawer-header" id="logDrawerHeader">
+            <span>Terminal / FFmpeg Engine Logs</span>
+            <span id="logToggleIcon">▼</span>
+          </div>
+          <div class="log-terminal" id="logTerminal">
+            <div class="log-line">Ready to process.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. DONE STATE: PREVIEW, DOWNLOAD, WORKSPACE & AI METADATA -->
+    <section id="stateDone" class="app-state">
+      <div class="done-card">
+        <div class="done-header">
+          <div class="done-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Merge Successful!
+          </div>
+          <h2 class="done-title" id="doneVideoTitle">Your Merged Video is Ready</h2>
+        </div>
+
+        <!-- Video Player Preview with Before/After Comparison Toggle -->
+        <div class="player-comparison-bar" id="comparisonControlBar" style="display: none;">
+          <div class="comparison-indicator">
+            <span class="active-badge" id="playerActiveLabel">✨ Viewing: Upscaled Video</span>
+            <span class="comparison-hint" id="comparisonHint">Press toggle to inspect sharpness difference</span>
+          </div>
+          <div class="comparison-toggles">
+            <button class="btn btn-xs btn-secondary" id="btnViewOriginal">📹 View Original Stitched</button>
+            <button class="btn btn-xs btn-primary active" id="btnViewUpscaled">✨ View Upscaled Result</button>
+          </div>
+        </div>
+
+        <!-- Video Player Preview -->
+        <div class="preview-player-wrapper">
+          <video id="outputVideoPlayer" controls playsinline></video>
+        </div>
+
+        <!-- Result Metadata -->
+        <div class="result-meta-grid">
+          <div class="result-meta-item">
+            <div class="result-meta-label">File Size</div>
+            <div class="result-meta-val" id="resFileSize">0 MB</div>
+          </div>
+          <div class="result-meta-item">
+            <div class="result-meta-label">Duration</div>
+            <div class="result-meta-val" id="resDuration">0s</div>
+          </div>
+          <div class="result-meta-item">
+            <div class="result-meta-label">Method Used</div>
+            <div class="result-meta-val" id="resMethod" style="color: var(--success);">Stream Copy</div>
+          </div>
+          <div class="result-meta-item">
+            <div class="result-meta-label">Format</div>
+            <div class="result-meta-val">MP4 (H.264)</div>
+          </div>
+        </div>
+
+          <!-- ================================================================
+               DEDICATED POST-MERGE ENHANCEMENT SECTION (AFTER COMPLETED MERGE)
+               ================================================================ -->
+          <div class="post-merge-card">
+            <div class="post-merge-header">
+              <div class="post-merge-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                <span>Post-Merge Enhancement Studio</span>
+              </div>
+              <span class="badge-enhance-mode mode-upscale">1080P &amp; 4K Ultra HD</span>
+            </div>
+            <p class="post-merge-desc">
+              Enhance and upscale your completed merged video or extract high-definition 1080P/4K poster frames directly from the player.
+            </p>
+
+            <div class="post-merge-grid">
+              <!-- Action 1: Upscale Stitched Video -->
+              <div class="post-merge-action-box">
+                <h4>🚀 Upscale Merged Video</h4>
+                <p>Enhance the final video to crisp 1080P or 2160P 4K with Lanczos unsharp filter &amp; vibrance boost.</p>
+                <div class="post-merge-controls-row">
+                  <select id="selectPostMergeRes" class="form-select-enhance">
+                    <option value="1080p" selected>1080P Full HD (1920×1080)</option>
+                    <option value="2160p">2160P 4K Ultra HD (3840×2160)</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="btnPostMergeUpscale">
+                    Upscale Video Now
+                  </button>
+                </div>
+                <div id="postMergeVideoStatus" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.4rem; display: none;"></div>
+              </div>
+
+              <!-- Action 2: Extract & Enhance Poster Frame -->
+              <div class="post-merge-action-box">
+                <h4>🖼️ Extract &amp; Enhance Poster Frame</h4>
+                <p>Grab the current paused frame from the video player and upscale to high-res 1080P/4K image.</p>
+                <div class="post-merge-controls-row">
+                  <select id="selectPostMergePosterRes" class="form-select-enhance">
+                    <option value="1080p">1080P Poster</option>
+                    <option value="2160p" selected>2160P 4K Poster</option>
+                  </select>
+                  <button class="btn btn-secondary btn-sm" id="btnPostMergePoster">
+                    Capture &amp; Enhance Poster
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Upscaled Video Preview Box (Before Downloading) -->
+            <div id="upscaledPreviewBox" class="upscaled-preview-box" style="display: none;">
+              <div class="upscaled-preview-header">
+                <div class="upscaled-title">
+                  <span class="badge-enhance-mode" id="upscaledResTag">✨ 1080P Full HD</span>
+                  <strong>Upscaled Video Ready for Inspection</strong>
+                </div>
+                <div class="upscaled-badge-sharp">Lanczos Unsharp + Vibrance Active</div>
+              </div>
+              <p class="upscaled-preview-note">
+                Inspect and play the enhanced video below before downloading. Use the comparison controls to check clarity improvements against your original cut.
+              </p>
+              <div class="upscaled-preview-actions">
+                <button class="btn btn-sm btn-primary" id="btnPreviewUpscaledPlayer">
+                  ▶️ Play in Main Player
+                </button>
+                <button class="btn btn-sm btn-secondary" id="btnToggleCompareMode">
+                  🔄 Compare Before &amp; After
+                </button>
+                <a id="btnDownloadUpscaledDirect" class="btn btn-sm btn-success" download="clipmerge-upscaled.mp4">
+                  ⬇️ Download Upscaled Video (<span id="upscaledSizeLabel">0 MB</span>)
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connected Workspace & Cloud Actions -->
+          <div class="workspace-action-bar">
+            <button class="btn btn-secondary" id="btnOpenCalendarModal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Schedule on Calendar
+            </button>
+
+            <button class="btn btn-secondary" id="btnOpenGmailModal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              Send via Gmail
+            </button>
+
+            <button class="btn btn-secondary" id="btnSaveFirebase">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              Save to Firebase
+            </button>
+          </div>
+
+          <!-- AI Chapters & Outline Box -->
+          <div class="ai-chapters-card" id="aiChaptersCard">
+            <div class="ai-chapters-header">
+              <h4>✨ AI Chapter Markers &amp; Script Breakdown</h4>
+              <button class="btn btn-xs btn-secondary" id="btnDownloadVtt">Download Subtitles (.vtt)</button>
+            </div>
+            <div class="chapters-list" id="chaptersList"></div>
+          </div>
+
+          <!-- Actions -->
+          <div class="done-actions">
+            <a id="downloadBtn" class="btn btn-primary btn-lg" download="clipmerge-result.mp4">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download Final Video
+            </a>
+            <button class="btn btn-secondary btn-lg" id="btnStartOver">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
+              </svg>
+              Start Over
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ====================================================================
+         VIEW 2: DEDICATED VIDEO ENHANCER (1080P & 2160P 4K STANDALONE)
+         ==================================================================== -->
+    <div id="viewVideoEnhance" class="app-view">
+      <div class="enhancer-studio-container">
+        <div class="enhancer-header">
+          <h2>🎥 Dedicated Video Enhancer Studio</h2>
+          <p class="enhancer-sub">
+            Upscale any video clip to 1080P Full HD or 2160P 4K Ultra HD. Powered by client-side FFmpeg.wasm with Lanczos scaling, contrast equalizing, and unsharp matrix sharpening.
+          </p>
+        </div>
+
+        <div class="enhancer-card">
+          <!-- Video Dropzone -->
+          <div class="dropzone" id="videoEnhanceDropzone" style="min-height: 180px; padding: 2rem;">
+            <input type="file" id="videoEnhanceFileInput" class="hidden-file-input" accept="video/*,.mp4,.mov,.avi,.mkv">
+            <div class="dropzone-icon" style="width: 48px; height: 48px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </div>
+            <h3 class="dropzone-title">Drop a video to enhance</h3>
+            <p class="dropzone-desc">Drag and drop any video, or <strong style="color: var(--accent-primary);">click to browse</strong></p>
+            <span id="videoEnhanceSelectedName" style="font-size: 0.85rem; color: var(--accent-primary); font-weight: 600; margin-top: 0.5rem; display: block;"></span>
+          </div>
+
+          <!-- Enhancement Options Grid -->
+          <div class="enhance-panel-grid" style="margin-top: 1.5rem;">
+            <div class="form-group-enhance">
+              <label class="enhance-label">Target Video Resolution:</label>
+              <select id="selectStandaloneVideoRes" class="form-select-enhance">
+                <option value="1080p" selected>1080P Full HD (1920 × 1080)</option>
+                <option value="2160p">2160P 4K Ultra HD (3840 × 2160)</option>
+              </select>
+            </div>
+
+            <div class="form-group-enhance">
+              <label class="enhance-label">Aspect Fit Mode:</label>
+              <select id="selectStandaloneVideoAspect" class="form-select-enhance">
+                <option value="pad" selected>Pad / Letterbox (Preserve Ratio)</option>
+                <option value="crop">Crop (Center Fill 16:9)</option>
+                <option value="fit">Fit Bounds</option>
+                <option value="stretch">Stretch (Exact Fill)</option>
+              </select>
+            </div>
+
+            <div class="form-group-enhance-toggle">
+              <label class="toggle-checkbox-label">
+                <input type="checkbox" id="chkStandaloneVideoSharpen" checked>
+                <span>✨ Apply Unsharp Mask Filter (5:5:0.8) + Saturation Boost (+12%)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Process Button -->
+          <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+            <button class="btn btn-primary btn-lg" id="btnRunStandaloneVideoEnhance">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              Enhance Video to 1080P / 4K
+            </button>
+          </div>
+
+          <!-- Progress / Output Video -->
+          <div id="standaloneVideoProgress" style="display: none; margin-top: 1.5rem;">
+            <div class="progress-track">
+              <div class="progress-fill" id="standaloneVideoProgressFill"></div>
+            </div>
+            <p id="standaloneVideoStatusText" style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+              Processing video...
+            </p>
+          </div>
+
+          <div id="standaloneVideoResultWrapper" style="display: none; margin-top: 1.5rem;">
+            <h4>Enhanced Video Result:</h4>
+            <div class="preview-player-wrapper" style="margin-top: 0.75rem;">
+              <video id="standaloneVideoResultPlayer" controls playsinline></video>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+              <a id="btnDownloadStandaloneVideo" class="btn btn-primary" download="enhanced-video.mp4">
+                Download Enhanced Video
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 3: DEDICATED IMAGE ENHANCER (1080P & 2160P 4K STANDALONE)
+         ==================================================================== -->
+    <div id="viewImageEnhance" class="app-view">
+      <div class="enhancer-studio-container">
+        <div class="enhancer-header">
+          <h2>🖼️ Dedicated Image &amp; Poster Enhancer Studio</h2>
+          <p class="enhancer-sub">
+            Upscale any photo, thumbnail, or extracted video frame to 1080P Full HD or 2160P 4K Ultra HD. Uses client-side Canvas resampling, 3x3 unsharp convolution sharpening, and vibrance boosting.
+          </p>
+        </div>
+
+        <div class="enhancer-card">
+          <!-- Dropzone -->
+          <div class="image-upload-dropzone" id="standaloneImageDropzone">
+            <input type="file" id="standaloneImageFileInput" accept="image/*" style="display: none;">
+            <div class="dropzone-icon" style="width: 48px; height: 48px; margin: 0 auto 0.75rem;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <p>📁 Drag and drop any image here, or <strong style="color: var(--accent-primary);">click to browse</strong></p>
+            <span id="standaloneImageFileName" style="font-size: 0.85rem; color: var(--accent-primary); font-weight: 600; margin-top: 0.5rem; display: block;"></span>
+          </div>
+
+          <!-- Canvas Preview -->
+          <div class="image-preview-wrapper" id="standaloneImagePreviewWrapper">
+            <canvas id="standaloneImageCanvas" style="max-width: 100%; max-height: 380px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: block; margin: 0 auto; background: #000;"></canvas>
+            <div id="standaloneImagePlaceholder" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+              No image loaded. Drop an image above or load from current video frame.
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="enhance-panel-grid" style="margin-top: 1rem;">
+            <div class="form-group-enhance">
+              <label class="enhance-label">Target Image Resolution:</label>
+              <select id="selectStandaloneImageRes" class="form-select-enhance">
+                <option value="1080p">1080P Full HD (1920 × 1080)</option>
+                <option value="2160p" selected>2160P 4K Ultra HD (3840 × 2160)</option>
+              </select>
+            </div>
+
+            <div class="form-group-enhance">
+              <label class="enhance-label">Aspect Fit Mode:</label>
+              <select id="selectStandaloneImageAspect" class="form-select-enhance">
+                <option value="pad" selected>Pad / Letterbox (Preserve Ratio)</option>
+                <option value="crop">Crop (Center Fill 16:9)</option>
+                <option value="fit">Fit Bounds</option>
+                <option value="stretch">Stretch (Exact Fill)</option>
+              </select>
+            </div>
+
+            <div class="form-group-enhance-toggle">
+              <label class="toggle-checkbox-label">
+                <input type="checkbox" id="chkStandaloneImageSharpen" checked>
+                <span>✨ Unsharp Mask Convolution Filter + Vibrance Boost</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button class="btn btn-primary btn-lg" id="btnDownloadStandaloneImage">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Enhance &amp; Download Image
+            </button>
+          </div>
+        </div>
+      </div>
+    <!-- ====================================================================
+         VIEW 4: DEDICATED AI AUDIO & VOICE CREATION STUDIO
+         ==================================================================== -->
+    <div id="viewAudioStudio" class="app-view">
+      <div class="audio-studio-container">
+        <div class="enhancer-header">
+          <h2>🎙️ AI Audio &amp; Voice Creation Studio</h2>
+          <p class="enhancer-sub">
+            Generate multilingual speech in <strong>English &amp; Telugu (తెలుగు)</strong>, clone real voices via microphone or audio file, shape cinematic &amp; YouTube voice tones, or synthesize new hybrid voices. Attach the finished voiceover to your merged video with 1 click!
+          </p>
+        </div>
+
+        <div class="audio-studio-grid">
+          <!-- Column 1: Script & Multilingual Translator -->
+          <div class="audio-card">
+            <div class="audio-card-header">
+              <div class="audio-card-title">
+                <span>📝 Script &amp; Narration Studio</span>
+              </div>
+              <span class="badge-enhance-mode">Telugu &amp; English</span>
+            </div>
+
+            <div class="form-group-enhance">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label class="enhance-label" style="margin: 0;">Voiceover Script:</label>
+                <button class="btn btn-xs btn-secondary" id="btnImportScriptFromEditor" title="Import script entered in the Video Stitcher">
+                  📋 Import from Video Editor
+                </button>
+              </div>
+              <textarea id="audioScriptInput" class="form-textarea" style="height: 140px; font-size: 0.9rem;" placeholder="Type or paste your video script here in English or Telugu (తెలుగు)... e.g. 'నమస్కారం, ఈ వీడియోలో సరికొత్త AI టెక్నాలజీ గురించి తెలుసుకుందాం!'"></textarea>
+              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                <span id="audioScriptCharCount">0 characters</span>
+                <span id="audioScriptEstTime">~0s estimated audio</span>
+              </div>
+            </div>
+
+            <div class="form-group-enhance">
+              <label class="enhance-label">Target Language Mode:</label>
+              <select id="audioLangSelect" class="form-select-enhance">
+                <option value="te-IN" selected>తెలుగు - Telugu (India)</option>
+                <option value="en-IN">English (India Accent)</option>
+                <option value="en-US">English (US Natural)</option>
+                <option value="en-GB">English (British Accent)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-secondary" id="btnTranslateTelugu" title="Use Gemini AI to adapt script into natural spoken colloquial Telugu">
+                ✨ Gemini Translate to Telugu
+              </button>
+              <button class="btn btn-sm btn-secondary" id="btnPolishEnglishScript" title="Use Gemini AI to polish script for professional voiceover delivery">
+                🪄 Polish English Script
+              </button>
+            </div>
+            <div id="audioScriptAiStatus" style="font-size: 0.8rem; color: var(--text-secondary); display: none;"></div>
+          </div>
+
+          <!-- Column 2: Voice Tone Shaping & Controls -->
+          <div class="audio-card">
+            <div class="audio-card-header">
+              <div class="audio-card-title">
+                <span>🎭 Voice Selector &amp; Tone Sculptor</span>
+              </div>
+              <span class="badge-enhance-mode mode-upscale">Voice Tones</span>
+            </div>
+
+            <div class="form-group-enhance">
+              <label class="enhance-label">Select Voice Profile:</label>
+              <select id="audioVoiceSelect" class="form-select-enhance">
+                <option value="">Loading system &amp; browser voices...</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="enhance-label" style="margin-bottom: 0.4rem; display: block;">Cinematic Voice Tone Presets:</label>
+              <div class="tone-presets-grid">
+                <button type="button" class="tone-preset-btn" data-preset="cinematic">
+                  <span>🎬 Cinematic / Trailer</span>
+                  <span style="font-size: 0.7rem; opacity: 0.8;">Deep Baritone</span>
+                </button>
+                <button type="button" class="tone-preset-btn" data-preset="energetic">
+                  <span>⚡ YouTube Star</span>
+                  <span style="font-size: 0.7rem; opacity: 0.8;">Fast &amp; Dynamic</span>
+                </button>
+                <button type="button" class="tone-preset-btn active" data-preset="storyteller">
+                  <span>📖 Warm Storyteller</span>
+                  <span style="font-size: 0.7rem; opacity: 0.8;">Balanced &amp; Friendly</span>
+                </button>
+                <button type="button" class="tone-preset-btn" data-preset="professional">
+                  <span>💼 Corporate Presenter</span>
+                  <span style="font-size: 0.7rem; opacity: 0.8;">Clear &amp; Crisp</span>
+                </button>
+                <button type="button" class="tone-preset-btn" data-preset="calm">
+                  <span>🌿 Calm &amp; Meditative</span>
+                  <span style="font-size: 0.7rem; opacity: 0.8;">Slow &amp; Soothing</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Pitch and Rate Fine Tuning Sliders -->
+            <div class="slider-group" style="margin-top: 0.25rem;">
+              <div class="slider-label-row">
+                <span>Voice Pitch:</span>
+                <span class="slider-val-tag" id="labelAudioPitch">1.00x</span>
+              </div>
+              <input type="range" id="audioPitchSlider" class="audio-range-slider" min="0.5" max="1.8" step="0.05" value="1.0">
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-label-row">
+                <span>Speech Speed / Rate:</span>
+                <span class="slider-val-tag" id="labelAudioRate">1.00x</span>
+              </div>
+              <input type="range" id="audioRateSlider" class="audio-range-slider" min="0.5" max="2.0" step="0.05" value="1.0">
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+              <button class="btn btn-primary btn-sm" id="btnAuditionVoice" style="flex: 1;">
+                ▶️ Audition Voice
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnStopAudition">
+                ⏹️ Stop
+              </button>
+            </div>
+          </div>
+
+          <!-- Column 3: Voice Cloning & Voice Merger (Create New Voices) -->
+          <div class="audio-card">
+            <div class="audio-card-header">
+              <div class="audio-card-title">
+                <span>🧬 Voice Cloning &amp; Voice Merger</span>
+              </div>
+              <span class="badge-enhance-mode">AI Synthesis</span>
+            </div>
+
+            <!-- Tab Toggles for Cloning vs Merger -->
+            <div class="image-source-tabs" style="margin-bottom: 0.75rem;">
+              <button class="btn btn-xs btn-primary" id="btnTabVoiceClone">🎙️ Clone Voice</button>
+              <button class="btn btn-xs btn-secondary" id="btnTabVoiceMerger">🧬 Voice Merger</button>
+            </div>
+
+            <!-- Sub-panel A: Voice Cloning -->
+            <div id="panelVoiceClone">
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                Speak into your mic for 3–5 seconds or upload an audio sample to extract pitch frequency (F0) and vocal timbre resonance.
+              </p>
+
+              <div class="clone-recorder-box" id="cloneRecorderBox">
+                <button class="btn btn-danger" id="btnToggleMicRecord">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="8"/>
+                  </svg>
+                  <span id="micRecordBtnLabel">Record Voice (Mic)</span>
+                </button>
+                <div id="micTimerLabel" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                  Click to start sampling voice profile...
+                </div>
+              </div>
+
+              <div style="text-align: center; margin: 0.75rem 0; font-size: 0.75rem; color: var(--text-muted);">
+                — OR UPLOAD AUDIO FILE —
+              </div>
+
+              <input type="file" id="audioCloneFileInput" accept="audio/*,.wav,.mp3,.ogg,.m4a,.webm" style="display: none;">
+              <button class="btn btn-secondary btn-sm" id="btnUploadCloneAudio" style="width: 100%;">
+                📁 Choose Voice Audio File
+              </button>
+
+              <div id="cloneResultCard" class="clone-profile-card" style="display: none;">
+                <strong style="color: #34d399;">✅ Voice Profile Extracted:</strong>
+                <div class="clone-profile-row" style="margin-top: 0.4rem;">
+                  <span>Fundamental F0:</span>
+                  <span id="cloneFreqHz" style="font-weight: 700;">145 Hz</span>
+                </div>
+                <div class="clone-profile-row">
+                  <span>Timbre Character:</span>
+                  <span id="cloneTimbre">Deep / Resonant</span>
+                </div>
+                <div class="clone-profile-row">
+                  <span>Suggested Pitch:</span>
+                  <span id="clonePitchVal">0.85x</span>
+                </div>
+                <button class="btn btn-xs btn-primary" id="btnApplyClonedVoice" style="margin-top: 0.5rem; width: 100%;">
+                  Apply Cloned Voice to Narration
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-panel B: Voice Merger / Hybrid Voice Creation -->
+            <div id="panelVoiceMerger" style="display: none;">
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                Blend two different voices with custom weight ratios to synthesize a completely brand-new, unique synthetic voice.
+              </p>
+
+              <div class="form-group-enhance">
+                <label class="enhance-label">Voice A (Base Tone):</label>
+                <select id="mergeVoiceA" class="form-select-enhance">
+                  <option value="cinematic">🎬 Cinematic Deep Baritone</option>
+                  <option value="storyteller" selected>📖 Warm Storyteller</option>
+                  <option value="professional">💼 Corporate Presenter</option>
+                </select>
+              </div>
+
+              <div class="form-group-enhance" style="margin-top: 0.5rem;">
+                <label class="enhance-label">Voice B (Blend Accent):</label>
+                <select id="mergeVoiceB" class="form-select-enhance">
+                  <option value="energetic">⚡ YouTube Star Dynamic</option>
+                  <option value="calm">🌿 Calm Narrator</option>
+                  <option value="cinematic">🎬 Cinematic Deep Baritone</option>
+                </select>
+              </div>
+
+              <div class="slider-group" style="margin-top: 0.5rem;">
+                <div class="slider-label-row">
+                  <span>Voice A Ratio:</span>
+                  <span class="slider-val-tag" id="labelMergeRatio">50% A / 50% B</span>
+                </div>
+                <input type="range" id="mergeRatioSlider" class="audio-range-slider" min="0" max="100" step="5" value="50">
+              </div>
+
+              <button class="btn btn-primary btn-sm" id="btnSynthesizeMergedVoice" style="width: 100%; margin-top: 0.75rem;">
+                🧬 Synthesize Hybrid Voice
+              </button>
+              <div id="mergeVoiceStatus" style="font-size: 0.8rem; color: var(--success); margin-top: 0.4rem; display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Audio Output & Multiplex to Video Action Strip -->
+        <div class="audio-output-strip">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h4 style="margin: 0; font-size: 1.05rem;">🎧 Master Audio Output &amp; Video Attachment</h4>
+              <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-secondary);">
+                Synthesize the final narration into a master WAV audio track or multiplex directly into your stitched video.
+              </p>
+            </div>
+            <button class="btn btn-primary" id="btnSynthesizeFullAudio">
+              ⚡ Generate Voiceover Audio Track
+            </button>
+          </div>
+
+          <div class="audio-player-row">
+            <audio id="audioStudioPlayer" controls style="display: none;"></audio>
+            <span id="audioPlayerStatus" style="font-size: 0.85rem; color: var(--text-muted);">
+              No audio track rendered yet. Click "Generate Voiceover Audio Track" above.
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <a id="btnDownloadAudioTrack" class="btn btn-secondary" download="clipmerge-voiceover.wav" style="pointer-events: none; opacity: 0.5;">
+              ⬇️ Download Audio (WAV)
+            </a>
+            <button class="btn btn-primary" id="btnAttachToMergedVideo" disabled>
+              🎬 Attach Voiceover to Merged Video
+            </button>
+          </div>
+          <div id="audioAttachResultStatus" style="font-size: 0.85rem; color: var(--text-secondary); display: none;"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Google Calendar Scheduling Modal -->
+  <div class="modal-backdrop" id="calendarModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📅 Schedule on Google Calendar</h3>
+        <button class="modal-close" id="btnCloseCalModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Event Title</label>
+        <input type="text" id="calEventTitle" class="form-input" value="Video Premiere: Final Cut">
+
+        <label class="form-label">Date & Time</label>
+        <input type="datetime-local" id="calEventDate" class="form-input">
+
+        <label class="form-label">Description / Script Summary</label>
+        <textarea id="calEventDesc" class="form-textarea"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelCal">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmCal">Add to Google Calendar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gmail Sending / Composing Modal -->
+  <div class="modal-backdrop" id="gmailModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>✉️ Share Video via Gmail</h3>
+        <button class="modal-close" id="btnCloseGmailModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Recipient Email</label>
+        <input type="email" id="gmailRecipient" class="form-input" placeholder="colleague@example.com, client@company.com">
+
+        <label class="form-label">Subject</label>
+        <input type="text" id="gmailSubject" class="form-input" value="Your Final Merged Video is Ready!">
+
+        <label class="form-label">Message Preview</label>
+        <textarea id="gmailBody" class="form-textarea"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelGmail">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmGmail">Send via Gmail</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings & Credentials Modal (Gemini & Firebase) -->
+  <div class="modal-backdrop" id="settingsModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ Settings: Gemini AI & Firebase</h3>
+        <button class="modal-close" id="btnCloseSettingsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h4>🤖 Google Gemini Intelligence</h4>
+          <p class="settings-desc">
+            Enter your Google Gemini API key to enable multimodal script alignment, smart chapters, and title generation.
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color: var(--accent-primary);">Get a free key here</a>.
+          </p>
+          <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy...">
+        </div>
+
+        <div class="settings-section" style="margin-top: 1.5rem;">
+          <h4>☁️ Firebase Configuration</h4>
+          <p class="settings-desc">
+            Paste your Firebase web config JSON to connect your cloud project. (Leave blank for local storage history).
+          </p>
+          <textarea id="firebaseConfigInput" class="form-textarea" style="height: 100px;" placeholder='{ "apiKey": "...", "projectId": "...", "authDomain": "..." }'></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelSettings">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveSettings">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image & Poster Enhancement Modal (1080P & 2160P 4K) -->
+  <div class="modal-backdrop" id="imageEnhanceModal" style="display: none;">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3>🖼️ Image & Poster Enhancer (1080P & 2160P 4K)</h3>
+        <button class="modal-close" id="btnCloseImageEnhanceModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-desc">
+          Capture high-res poster frames directly from your video or upload custom images to upscale to crisp 1080P Full HD or 2160P 4K UHD using Lanczos-style resampling & unsharp mask sharpening.
+        </p>
+
+        <!-- Source tabs: Frame vs Upload -->
+        <div class="image-source-tabs">
+          <button class="btn btn-sm btn-primary" id="btnTabCurrentFrame">Current Video Frame</button>
+          <button class="btn btn-sm btn-secondary" id="btnTabUploadImage">Upload Custom Image</button>
+        </div>
+
+        <div id="imageUploadDropzone" class="image-upload-dropzone" style="display: none;">
+          <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+          <p>📁 Drag and drop image here, or <strong style="color: var(--accent-primary);">click to browse</strong></p>
+          <span id="imageFileName" style="font-size: 0.8rem; color: var(--accent-primary); font-weight: 600;"></span>
+        </div>
+
+        <!-- Image Preview Box -->
+        <div class="image-preview-wrapper" id="imagePreviewWrapper">
+          <canvas id="imageEnhanceCanvas" style="max-width: 100%; max-height: 220px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: block; margin: 0 auto; background: #000;"></canvas>
+          <div id="imagePreviewPlaceholder" style="padding: 2.5rem; text-align: center; color: var(--text-muted); display: none;">
+            No image loaded yet. Select current video frame or drop an image above.
+          </div>
+        </div>
+
+        <!-- Enhancement Controls -->
+        <div class="enhance-modal-controls">
+          <div class="form-group-enhance">
+            <label class="enhance-label">Target Resolution:</label>
+            <select id="selectImageResolution" class="form-select-enhance">
+              <option value="1080p" selected>1080P Full HD (1920 × 1080)</option>
+              <option value="2160p">2160P 4K Ultra HD (3840 × 2160)</option>
+            </select>
+          </div>
+
+          <div class="form-group-enhance">
+            <label class="enhance-label">Aspect Mode:</label>
+            <select id="selectImageAspectMode" class="form-select-enhance">
+              <option value="pad" selected>Pad / Letterbox (Preserve Ratio)</option>
+              <option value="crop">Crop (Center Fill 16:9)</option>
+              <option value="fit">Fit (Auto Bounds)</option>
+              <option value="stretch">Stretch (Exact Fill)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top: 0.25rem;">
+          <label class="toggle-checkbox-label">
+            <input type="checkbox" id="chkImageSharpen" checked>
+            <span>✨ Apply Unsharp Mask Sharpening & Color Vibrance Boost</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelImageEnhance">Close</button>
+        <button class="btn btn-primary" id="btnDownloadEnhancedImage">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Enhance & Download Image
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Main Logic -->
+  <script type="module" src="main.js"></script>
+</body>
+</html>

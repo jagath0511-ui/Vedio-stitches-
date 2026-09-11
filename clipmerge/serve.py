@@ -17,6 +17,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
 if __name__ == '__main__':
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         print(f"ClipMerge local server running with COOP/COEP headers at http://localhost:{PORT}")
         httpd.serve_forever()

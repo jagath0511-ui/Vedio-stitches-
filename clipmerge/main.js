@@ -2637,11 +2637,20 @@ let latestExtractedProfile = null;
 
 function showCloneProfileResults(profile, nameLabel) {
   latestExtractedProfile = profile;
+  const cloneSpeechDensity = document.getElementById('cloneSpeechDensity');
+  const cloneAlgorithm = document.getElementById('cloneAlgorithm');
+
   if (cloneResultCard) cloneResultCard.style.display = 'block';
-  if (cloneFreqHz) cloneFreqHz.textContent = `${profile.estimatedFreqHz} Hz`;
+  if (cloneFreqHz) cloneFreqHz.textContent = `${profile.estimatedFreqHz} Hz (Fundamental F0)`;
   if (cloneTimbre) cloneTimbre.textContent = profile.timbre || 'Natural Voice';
   if (clonePitchVal) clonePitchVal.textContent = `${profile.suggestedPitch}x`;
-  if (micTimerLabel) micTimerLabel.textContent = `✅ Voice profile analyzed from ${nameLabel}!`;
+  if (cloneSpeechDensity && profile.speechDensityPercent) {
+    cloneSpeechDensity.textContent = `${profile.speechDensityPercent}% active phonemes`;
+  }
+  if (cloneAlgorithm && profile.analysisMethod) {
+    cloneAlgorithm.textContent = profile.analysisMethod;
+  }
+  if (micTimerLabel) micTimerLabel.textContent = `✅ 10s voice profile analyzed from ${nameLabel}!`;
 }
 
 if (btnApplyClonedVoice) {

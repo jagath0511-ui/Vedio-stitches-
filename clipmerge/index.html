@@ -965,9 +965,12 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
               </button>
 
               <div id="cloneResultCard" class="clone-profile-card" style="display: none;">
-                <strong style="color: #34d399;">✅ Voice Profile Extracted:</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong style="color: #34d399;">✅ 10s Voice Profile Extracted:</strong>
+                  <span id="cloneAlgorithm" style="font-size: 0.65rem; color: #a5b4fc; background: rgba(99,102,241,0.2); padding: 0.1rem 0.4rem; border-radius: 4px;">NACF Autocorrelation</span>
+                </div>
                 <div class="clone-profile-row" style="margin-top: 0.4rem;">
-                  <span>Fundamental F0:</span>
+                  <span>Fundamental Pitch (F0):</span>
                   <span id="cloneFreqHz" style="font-weight: 700;">145 Hz</span>
                 </div>
                 <div class="clone-profile-row">
@@ -975,7 +978,11 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
                   <span id="cloneTimbre">Deep / Resonant</span>
                 </div>
                 <div class="clone-profile-row">
-                  <span>Suggested Pitch:</span>
+                  <span>Speech Density / Purity:</span>
+                  <span id="cloneSpeechDensity" style="font-weight: 600; color: #34d399;">92% active</span>
+                </div>
+                <div class="clone-profile-row">
+                  <span>Calibrated Pitch Scale:</span>
                   <span id="clonePitchVal">0.85x</span>
                 </div>
                 <button class="btn btn-xs btn-primary" id="btnApplyClonedVoice" style="margin-top: 0.5rem; width: 100%;">

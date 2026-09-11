@@ -931,10 +931,11 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
               <span class="badge-enhance-mode">AI Synthesis</span>
             </div>
 
-            <!-- Tab Toggles for Cloning vs Merger -->
+            <!-- Tab Toggles for Cloning vs Merger vs F5-TTS -->
             <div class="image-source-tabs" style="margin-bottom: 0.75rem;">
               <button class="btn btn-xs btn-primary" id="btnTabVoiceClone">🎙️ Clone Voice</button>
               <button class="btn btn-xs btn-secondary" id="btnTabVoiceMerger">🧬 Voice Merger</button>
+              <button class="btn btn-xs btn-secondary" id="btnTabF5TTS">⚡ F5-TTS Neural Clone</button>
             </div>
 
             <!-- Sub-panel A: Voice Cloning -->
@@ -1028,6 +1029,37 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
               </button>
               <div id="mergeVoiceStatus" style="font-size: 0.8rem; color: var(--success); margin-top: 0.4rem; display: none;"></div>
             </div>
+
+            <!-- Sub-panel C: F5-TTS Neural Zero-Shot Emotional Voice Cloning -->
+            <div id="panelF5TTS" style="display: none;">
+              <div style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <strong style="color: #a5b4fc; font-size: 0.85rem;">⚡ F5-TTS Flow Diffusion</strong>
+                  <span style="font-size: 0.65rem; background: #6366f1; color: white; padding: 0.1rem 0.4rem; border-radius: 4px;">Zero-Shot</span>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; line-height: 1.35;">
+                  Clones realistic human emotions, laughter, whispers, and vocal timber from 5–10s audio references using Flow Matching.
+                </p>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                  <span>Local Engine:</span>
+                  <a href="http://127.0.0.1:7860" target="_blank" style="color: #818cf8; text-decoration: underline; font-weight: 600;">http://127.0.0.1:7860 ↗</a>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); background: var(--bg-tertiary); padding: 0.5rem; border-radius: 6px; line-height: 1.4;">
+                  1. Double-click <code style="color: #38bdf8;">start_f5_tts.bat</code> to launch.<br>
+                  2. Upload 10s voice clip with target emotion in Gradio.<br>
+                  3. Generate &amp; import the resulting WAV below!
+                </div>
+              </div>
+
+              <input type="file" id="f5ttsAudioFileInput" accept="audio/*,.wav,.mp3" style="display: none;">
+              <button class="btn btn-primary btn-sm" id="btnImportF5TTSWav" style="width: 100%;">
+                📥 Import F5-TTS WAV into Video
+              </button>
+              <div id="f5ttsImportStatus" style="font-size: 0.75rem; color: #34d399; margin-top: 0.4rem; display: none;"></div>
+            </div>
           </div>
         </div>
 
@@ -1037,12 +1069,18 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
             <div>
               <h4 style="margin: 0; font-size: 1.05rem;">🎧 Master Audio Output &amp; Video Attachment</h4>
               <p style="margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-secondary);">
-                Synthesize the final narration into a master WAV audio track or multiplex directly into your stitched video.
+                Synthesize narration into a master WAV audio track or import external audio (F5-TTS) to multiplex into your video.
               </p>
             </div>
-            <button class="btn btn-primary" id="btnSynthesizeFullAudio">
-              ⚡ Generate Voiceover Audio Track
-            </button>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" id="btnQuickImportExternalAudio" title="Import WAV or MP3 audio file to attach to video">
+                📁 Import WAV/MP3 Audio
+              </button>
+              <input type="file" id="quickImportAudioInput" accept="audio/*,.wav,.mp3,.m4a" style="display: none;">
+              <button class="btn btn-primary" id="btnSynthesizeFullAudio">
+                ⚡ Generate Voiceover Audio Track
+              </button>
+            </div>
           </div>
 
           <div class="audio-player-row">

@@ -164,8 +164,15 @@ const btnStopAudition = document.getElementById('btnStopAudition');
 
 const btnTabVoiceClone = document.getElementById('btnTabVoiceClone');
 const btnTabVoiceMerger = document.getElementById('btnTabVoiceMerger');
+const btnTabF5TTS = document.getElementById('btnTabF5TTS');
 const panelVoiceClone = document.getElementById('panelVoiceClone');
 const panelVoiceMerger = document.getElementById('panelVoiceMerger');
+const panelF5TTS = document.getElementById('panelF5TTS');
+const btnImportF5TTSWav = document.getElementById('btnImportF5TTSWav');
+const f5ttsAudioFileInput = document.getElementById('f5ttsAudioFileInput');
+const f5ttsImportStatus = document.getElementById('f5ttsImportStatus');
+const btnQuickImportExternalAudio = document.getElementById('btnQuickImportExternalAudio');
+const quickImportAudioInput = document.getElementById('quickImportAudioInput');
 
 const cloneRecorderBox = document.getElementById('cloneRecorderBox');
 const btnToggleMicRecord = document.getElementById('btnToggleMicRecord');
@@ -2549,20 +2556,81 @@ if (btnStopAudition) {
   });
 }
 
-// Voice Cloning & Merger Tabs
-if (btnTabVoiceClone && btnTabVoiceMerger) {
-  btnTabVoiceClone.addEventListener('click', () => {
-    btnTabVoiceClone.className = 'btn btn-xs btn-primary';
-    btnTabVoiceMerger.className = 'btn btn-xs btn-secondary';
-    if (panelVoiceClone) panelVoiceClone.style.display = 'block';
-    if (panelVoiceMerger) panelVoiceMerger.style.display = 'none';
+// Voice Cloning, Merger, and F5-TTS Tabs
+function switchVoiceSubTab(activeTab) {
+  if (btnTabVoiceClone) btnTabVoiceClone.className = activeTab === 'clone' ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+  if (btnTabVoiceMerger) btnTabVoiceMerger.className = activeTab === 'merger' ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+  if (btnTabF5TTS) btnTabF5TTS.className = activeTab === 'f5tts' ? 'btn btn-xs btn-primary' : 'btn btn-xs btn-secondary';
+
+  if (panelVoiceClone) panelVoiceClone.style.display = activeTab === 'clone' ? 'block' : 'none';
+  if (panelVoiceMerger) panelVoiceMerger.style.display = activeTab === 'merger' ? 'block' : 'none';
+  if (panelF5TTS) panelF5TTS.style.display = activeTab === 'f5tts' ? 'block' : 'none';
+}
+
+if (btnTabVoiceClone) btnTabVoiceClone.addEventListener('click', () => switchVoiceSubTab('clone'));
+if (btnTabVoiceMerger) btnTabVoiceMerger.addEventListener('click', () => switchVoiceSubTab('merger'));
+if (btnTabF5TTS) btnTabF5TTS.addEventListener('click', () => switchVoiceSubTab('f5tts'));
+
+// Helper to load any imported audio file (F5-TTS WAV / MP3) into the Studio Master player
+function loadMasterAudioTrack(file, sourceLabel = 'F5-TTS') {
+  if (!file) return;
+  state.generatedAudioBlob = file;
+  if (state.generatedAudioUrl) {
+    URL.revokeObjectURL(state.generatedAudioUrl);
+  }
+  state.generatedAudioUrl = URL.createObjectURL(file);
+
+  if (audioStudioPlayer) {
+    audioStudioPlayer.src = state.generatedAudioUrl;
+    audioStudioPlayer.style.display = 'block';
+    audioStudioPlayer.load();
+  }
+
+  if (btnDownloadAudioTrack) {
+    btnDownloadAudioTrack.href = state.generatedAudioUrl;
+    btnDownloadAudioTrack.download = file.name || `audio_track_${Date.now()}.wav`;
+    btnDownloadAudioTrack.style.pointerEvents = 'auto';
+    btnDownloadAudioTrack.style.opacity = '1';
+  }
+
+  if (btnAttachToMergedVideo) {
+    btnAttachToMergedVideo.disabled = false;
+  }
+
+  if (audioPlayerStatus) {
+    audioPlayerStatus.innerHTML = `<span style="color: var(--success); font-weight: 600;">✅ ${sourceLabel} audio loaded (${(file.size / 1024).toFixed(1)} KB)! Ready to attach to video.</span>`;
+  }
+}
+
+// F5-TTS Audio File Import
+if (btnImportF5TTSWav && f5ttsAudioFileInput) {
+  btnImportF5TTSWav.addEventListener('click', () => {
+    f5ttsAudioFileInput.click();
   });
 
-  btnTabVoiceMerger.addEventListener('click', () => {
-    btnTabVoiceMerger.className = 'btn btn-xs btn-primary';
-    btnTabVoiceClone.className = 'btn btn-xs btn-secondary';
-    if (panelVoiceClone) panelVoiceClone.style.display = 'none';
-    if (panelVoiceMerger) panelVoiceMerger.style.display = 'block';
+  f5ttsAudioFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      loadMasterAudioTrack(file, 'F5-TTS Neural Clone');
+      if (f5ttsImportStatus) {
+        f5ttsImportStatus.style.display = 'block';
+        f5ttsImportStatus.textContent = `✅ Loaded "${file.name}" into Master Output!`;
+      }
+    }
+  });
+}
+
+// Quick Audio Import in Master Output Strip
+if (btnQuickImportExternalAudio && quickImportAudioInput) {
+  btnQuickImportExternalAudio.addEventListener('click', () => {
+    quickImportAudioInput.click();
+  });
+
+  quickImportAudioInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      loadMasterAudioTrack(file, 'External Audio Track');
+    }
   });
 }
 

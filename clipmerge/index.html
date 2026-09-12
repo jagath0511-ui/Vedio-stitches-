@@ -65,10 +65,45 @@
           </svg>
           <span>🎙️ AI Audio &amp; Voice Studio</span>
         </button>
+        <button class="nav-tab" id="tabVideoEditor" data-view="viewVideoEditor">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+            <line x1="7" y1="2" x2="7" y2="22"></line>
+            <line x1="17" y1="2" x2="17" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="2" y1="7" x2="7" y2="7"></line>
+            <line x1="2" y1="17" x2="7" y2="17"></line>
+            <line x1="17" y1="17" x2="22" y2="17"></line>
+            <line x1="17" y1="7" x2="22" y2="7"></line>
+          </svg>
+          <span>🎬 Video Editing Station</span>
+        </button>
       </nav>
 
       <!-- Header Actions: Google Account & Settings -->
       <div class="header-actions">
+        <!-- SQLite Status Badge & Project Actions -->
+        <div id="sqliteStatusBadge" class="sqlite-status-badge" title="SQLite Local Backend Connection">
+          <span class="sqlite-dot"></span>
+          <span id="sqliteStatusText">SQLite</span>
+        </div>
+
+        <button class="btn btn-sm btn-secondary" id="btnOpenProjectsModal" title="Saved Projects & Render History (SQLite)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          Projects
+        </button>
+
+        <button class="btn btn-sm btn-primary" id="btnQuickSaveProject" title="Save current timeline & clips to SQLite">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Save
+        </button>
+
         <button class="btn btn-sm btn-secondary" id="btnGoogleAuth" title="Connect Google Workspace (Calendar & Gmail)">
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -377,6 +412,15 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
               <button class="btn btn-danger-ghost" id="btnClearAll">Clear All</button>
             </div>
             <div class="controls-right">
+              <button class="btn btn-secondary btn-lg" id="btnSendClipsToEditor" title="Send these ordered clips to the Multi-Track Video Editing Station">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                  <line x1="7" y1="2" x2="7" y2="22"></line>
+                  <line x1="17" y1="2" x2="17" y2="22"></line>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                </svg>
+                🎬 Send to Editing Station
+              </button>
               <button class="btn btn-primary btn-lg" id="btnMerge">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
@@ -796,6 +840,8 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
           </div>
         </div>
       </div>
+    </div>
+
     <!-- ====================================================================
          VIEW 4: DEDICATED AI AUDIO & VOICE CREATION STUDIO
          ==================================================================== -->
@@ -804,262 +850,519 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
         <div class="enhancer-header">
           <h2>🎙️ AI Audio &amp; Voice Creation Studio</h2>
           <p class="enhancer-sub">
-            Generate multilingual speech in <strong>English &amp; Telugu (తెలుగు)</strong>, clone real voices via microphone or audio file, shape cinematic &amp; YouTube voice tones, or synthesize new hybrid voices. Attach the finished voiceover to your merged video with 1 click!
+            Full Google Voice Models Catalog (Gemini AI, Journey, Studio, Neural2 &amp; Telugu), Character Cast &amp; Voice Studio with character images, Custom Google Voice Merger, and searchable Voice Library separated by Male &amp; Female.
           </p>
         </div>
 
-        <div class="audio-studio-grid">
-          <!-- Column 1: Script & Multilingual Translator -->
-          <div class="audio-card">
-            <div class="audio-card-header">
-              <div class="audio-card-title">
-                <span>📝 Script &amp; Narration Studio</span>
-              </div>
-              <span class="badge-enhance-mode">Telugu &amp; English</span>
-            </div>
+        <!-- Audio Studio Sub-Navigation Tabs -->
+        <div class="audio-subnav-bar" id="audioSubNavBar">
+          <button type="button" class="audio-subnav-btn active" id="btnSubTabNarration" data-subview="subViewNarration">
+            <span>🎙️ Master Narration &amp; Speech</span>
+          </button>
+          <button type="button" class="audio-subnav-btn" id="btnSubTabCharacters" data-subview="subViewCharacters">
+            <span>👥 Character Cast &amp; Voice Studio</span>
+            <span class="subnav-badge" id="characterCountBadge">0</span>
+          </button>
+          <button type="button" class="audio-subnav-btn" id="btnSubTabMerger" data-subview="subViewMerger">
+            <span>🧬 Google Voice Merger</span>
+          </button>
+          <button type="button" class="audio-subnav-btn" id="btnSubTabLibrary" data-subview="subViewLibrary">
+            <span>📚 Google Voice Library Explorer</span>
+            <span class="subnav-badge" id="totalVoiceCountBadge">20+</span>
+          </button>
+        </div>
 
-            <div class="form-group-enhance">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <label class="enhance-label" style="margin: 0;">Voiceover Script:</label>
-                <button class="btn btn-xs btn-secondary" id="btnImportScriptFromEditor" title="Import script entered in the Video Stitcher">
-                  📋 Import from Video Editor
-                </button>
-              </div>
-              <textarea id="audioScriptInput" class="form-textarea" style="height: 140px; font-size: 0.9rem;" placeholder="Type or paste your video script here in English or Telugu (తెలుగు)... e.g. 'నమస్కారం, ఈ వీడియోలో సరికొత్త AI టెక్నాలజీ గురించి తెలుసుకుందాం!'"></textarea>
-              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
-                <span id="audioScriptCharCount">0 characters</span>
-                <span id="audioScriptEstTime">~0s estimated audio</span>
-              </div>
-            </div>
-
-            <div class="form-group-enhance">
-              <label class="enhance-label">Target Language Mode:</label>
-              <select id="audioLangSelect" class="form-select-enhance">
-                <option value="te-IN" selected>తెలుగు - Telugu (India)</option>
-                <option value="en-IN">English (India Accent)</option>
-                <option value="en-US">English (US Natural)</option>
-                <option value="en-GB">English (British Accent)</option>
-              </select>
-            </div>
-
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="btn btn-sm btn-secondary" id="btnTranslateTelugu" title="Use Gemini AI to adapt script into natural spoken colloquial Telugu">
-                ✨ Gemini Translate to Telugu
-              </button>
-              <button class="btn btn-sm btn-secondary" id="btnPolishEnglishScript" title="Use Gemini AI to polish script for professional voiceover delivery">
-                🪄 Polish English Script
-              </button>
-            </div>
-            <div id="audioScriptAiStatus" style="font-size: 0.8rem; color: var(--text-secondary); display: none;"></div>
-          </div>
-
-          <!-- Column 2: Voice Tone Shaping & Controls -->
-          <div class="audio-card">
-            <div class="audio-card-header">
-              <div class="audio-card-title">
-                <span>🎭 Voice Selector &amp; Tone Sculptor</span>
-              </div>
-              <span class="badge-enhance-mode mode-upscale">Voice Tones</span>
-            </div>
-
-            <div class="form-group-enhance">
-              <label class="enhance-label">Select Voice Profile:</label>
-              <select id="audioVoiceSelect" class="form-select-enhance">
-                <option value="">Loading system &amp; browser voices...</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="enhance-label" style="margin-bottom: 0.4rem; display: block;">Cinematic Voice Tone Presets:</label>
-              <div class="tone-presets-grid">
-                <button type="button" class="tone-preset-btn" data-preset="cinematic">
-                  <span>🎬 Cinematic / Trailer</span>
-                  <span style="font-size: 0.7rem; opacity: 0.8;">Deep Baritone</span>
-                </button>
-                <button type="button" class="tone-preset-btn" data-preset="energetic">
-                  <span>⚡ YouTube Star</span>
-                  <span style="font-size: 0.7rem; opacity: 0.8;">Fast &amp; Dynamic</span>
-                </button>
-                <button type="button" class="tone-preset-btn active" data-preset="storyteller">
-                  <span>📖 Warm Storyteller</span>
-                  <span style="font-size: 0.7rem; opacity: 0.8;">Balanced &amp; Friendly</span>
-                </button>
-                <button type="button" class="tone-preset-btn" data-preset="professional">
-                  <span>💼 Corporate Presenter</span>
-                  <span style="font-size: 0.7rem; opacity: 0.8;">Clear &amp; Crisp</span>
-                </button>
-                <button type="button" class="tone-preset-btn" data-preset="calm">
-                  <span>🌿 Calm &amp; Meditative</span>
-                  <span style="font-size: 0.7rem; opacity: 0.8;">Slow &amp; Soothing</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Pitch and Rate Fine Tuning Sliders -->
-            <div class="slider-group" style="margin-top: 0.25rem;">
-              <div class="slider-label-row">
-                <span>Voice Pitch:</span>
-                <span class="slider-val-tag" id="labelAudioPitch">1.00x</span>
-              </div>
-              <input type="range" id="audioPitchSlider" class="audio-range-slider" min="0.5" max="1.8" step="0.05" value="1.0">
-            </div>
-
-            <div class="slider-group">
-              <div class="slider-label-row">
-                <span>Speech Speed / Rate:</span>
-                <span class="slider-val-tag" id="labelAudioRate">1.00x</span>
-              </div>
-              <input type="range" id="audioRateSlider" class="audio-range-slider" min="0.5" max="2.0" step="0.05" value="1.0">
-            </div>
-
-            <div style="display: flex; gap: 0.5rem; margin-top: auto;">
-              <button class="btn btn-primary btn-sm" id="btnAuditionVoice" style="flex: 1;">
-                ▶️ Audition Voice
-              </button>
-              <button class="btn btn-secondary btn-sm" id="btnStopAudition">
-                ⏹️ Stop
-              </button>
-            </div>
-          </div>
-
-          <!-- Column 3: Voice Cloning & Voice Merger (Create New Voices) -->
-          <div class="audio-card">
-            <div class="audio-card-header">
-              <div class="audio-card-title">
-                <span>🧬 Voice Cloning &amp; Voice Merger</span>
-              </div>
-              <span class="badge-enhance-mode">AI Synthesis</span>
-            </div>
-
-            <!-- Tab Toggles for Cloning vs Merger vs F5-TTS -->
-            <div class="image-source-tabs" style="margin-bottom: 0.75rem;">
-              <button class="btn btn-xs btn-primary" id="btnTabVoiceClone">🎙️ Clone Voice</button>
-              <button class="btn btn-xs btn-secondary" id="btnTabVoiceMerger">🧬 Voice Merger</button>
-              <button class="btn btn-xs btn-secondary" id="btnTabF5TTS">⚡ F5-TTS Neural Clone</button>
-            </div>
-
-            <!-- Sub-panel A: Voice Cloning -->
-            <div id="panelVoiceClone">
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
-                Speak into your mic for 3–5 seconds or upload an audio sample to extract pitch frequency (F0) and vocal timbre resonance.
-              </p>
-
-              <div class="clone-recorder-box" id="cloneRecorderBox">
-                <button class="btn btn-danger" id="btnToggleMicRecord">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="8"/>
-                  </svg>
-                  <span id="micRecordBtnLabel">Record Voice (Mic)</span>
-                </button>
-                <div id="micTimerLabel" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
-                  Click to start sampling voice profile...
+        <!-- ==========================================
+             SUBVIEW 1: MASTER NARRATION & VOICE CONTROLS
+             ========================================== -->
+        <div id="subViewNarration" class="audio-subview-panel active">
+          <div class="audio-studio-grid">
+            <!-- Column 1: Script & Multilingual Translator -->
+            <div class="audio-card">
+              <div class="audio-card-header">
+                <div class="audio-card-title">
+                  <span>📝 Script &amp; Narration Studio</span>
                 </div>
+                <span class="badge-enhance-mode">Telugu &amp; English</span>
               </div>
-
-              <div style="text-align: center; margin: 0.75rem 0; font-size: 0.75rem; color: var(--text-muted);">
-                — OR UPLOAD AUDIO FILE —
-              </div>
-
-              <input type="file" id="audioCloneFileInput" accept="audio/*,.wav,.mp3,.ogg,.m4a,.webm" style="display: none;">
-              <button class="btn btn-secondary btn-sm" id="btnUploadCloneAudio" style="width: 100%;">
-                📁 Choose Voice Audio File
-              </button>
-
-              <div id="cloneResultCard" class="clone-profile-card" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <strong style="color: #34d399;">✅ 10s Voice Profile Extracted:</strong>
-                  <span id="cloneAlgorithm" style="font-size: 0.65rem; color: #a5b4fc; background: rgba(99,102,241,0.2); padding: 0.1rem 0.4rem; border-radius: 4px;">NACF Autocorrelation</span>
-                </div>
-                <div class="clone-profile-row" style="margin-top: 0.4rem;">
-                  <span>Fundamental Pitch (F0):</span>
-                  <span id="cloneFreqHz" style="font-weight: 700;">145 Hz</span>
-                </div>
-                <div class="clone-profile-row">
-                  <span>Timbre Character:</span>
-                  <span id="cloneTimbre">Deep / Resonant</span>
-                </div>
-                <div class="clone-profile-row">
-                  <span>Speech Density / Purity:</span>
-                  <span id="cloneSpeechDensity" style="font-weight: 600; color: #34d399;">92% active</span>
-                </div>
-                <div class="clone-profile-row">
-                  <span>Calibrated Pitch Scale:</span>
-                  <span id="clonePitchVal">0.85x</span>
-                </div>
-                <button class="btn btn-xs btn-primary" id="btnApplyClonedVoice" style="margin-top: 0.5rem; width: 100%;">
-                  Apply Cloned Voice to Narration
-                </button>
-              </div>
-            </div>
-
-            <!-- Sub-panel B: Voice Merger / Hybrid Voice Creation -->
-            <div id="panelVoiceMerger" style="display: none;">
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
-                Blend two different voices with custom weight ratios to synthesize a completely brand-new, unique synthetic voice.
-              </p>
 
               <div class="form-group-enhance">
-                <label class="enhance-label">Voice A (Base Tone):</label>
-                <select id="mergeVoiceA" class="form-select-enhance">
-                  <option value="cinematic">🎬 Cinematic Deep Baritone</option>
-                  <option value="storyteller" selected>📖 Warm Storyteller</option>
-                  <option value="professional">💼 Corporate Presenter</option>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <label class="enhance-label" style="margin: 0;">Voiceover Script:</label>
+                  <button class="btn btn-xs btn-secondary" id="btnImportScriptFromEditor" title="Import script entered in the Video Stitcher">
+                    📋 Import from Video Editor
+                  </button>
+                </div>
+                <textarea id="audioScriptInput" class="form-textarea" style="height: 140px; font-size: 0.9rem;" placeholder="Type or paste your video script here in English or Telugu (తెలుగు)... e.g. 'నమస్కారం, ఈ వీడియోలో సరికొత్త AI టెక్నాలజీ గురించి తెలుసుకుందాం!'"></textarea>
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                  <span id="audioScriptCharCount">0 characters</span>
+                  <span id="audioScriptEstTime">~0s estimated audio</span>
+                </div>
+              </div>
+
+              <div class="form-group-enhance">
+                <label class="enhance-label">Target Language Mode:</label>
+                <select id="audioLangSelect" class="form-select-enhance">
+                  <option value="te-IN" selected>తెలుగు - Telugu (India)</option>
+                  <option value="en-IN">English (India Accent)</option>
+                  <option value="en-US">English (US Natural)</option>
+                  <option value="en-GB">English (British Accent)</option>
                 </select>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-secondary" id="btnTranslateTelugu" title="Use Gemini AI to adapt script into natural spoken colloquial Telugu">
+                  ✨ Gemini Translate to Telugu
+                </button>
+                <button class="btn btn-sm btn-secondary" id="btnPolishEnglishScript" title="Use Gemini AI to polish script for professional voiceover delivery">
+                  🪄 Polish English Script
+                </button>
+              </div>
+              <div id="audioScriptAiStatus" style="font-size: 0.8rem; color: var(--text-secondary); display: none;"></div>
+            </div>
+
+            <!-- Column 2: Voice Tone Shaping & Controls -->
+            <div class="audio-card">
+              <div class="audio-card-header">
+                <div class="audio-card-title">
+                  <span>🎭 Voice Selector &amp; Tone Sculptor</span>
+                </div>
+                <span class="badge-enhance-mode mode-upscale">Voice Tones</span>
+              </div>
+
+              <div class="form-group-enhance">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="enhance-label">Select Voice Profile:</label>
+                  <button type="button" class="btn btn-xs btn-secondary" id="btnQuickBrowseLibrary" style="font-size: 0.7rem;">
+                    🔍 Browse Full Library
+                  </button>
+                </div>
+                <select id="audioVoiceSelect" class="form-select-enhance">
+                  <option value="">Loading system &amp; browser voices...</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="enhance-label" style="margin-bottom: 0.4rem; display: block;">Cinematic Voice Tone Presets:</label>
+                <div class="tone-presets-grid">
+                  <button type="button" class="tone-preset-btn" data-preset="lyra">
+                    <span>✨ Lyra AI</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Melodic &amp; Crystal Clarity</span>
+                  </button>
+                  <button type="button" class="tone-preset-btn" data-preset="cinematic">
+                    <span>🎬 Cinematic / Trailer</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Deep Baritone</span>
+                  </button>
+                  <button type="button" class="tone-preset-btn" data-preset="energetic">
+                    <span>⚡ YouTube Star</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Fast &amp; Dynamic</span>
+                  </button>
+                  <button type="button" class="tone-preset-btn active" data-preset="storyteller">
+                    <span>📖 Warm Storyteller</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Balanced &amp; Friendly</span>
+                  </button>
+                  <button type="button" class="tone-preset-btn" data-preset="professional">
+                    <span>💼 Corporate Presenter</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Clear &amp; Crisp</span>
+                  </button>
+                  <button type="button" class="tone-preset-btn" data-preset="calm">
+                    <span>🌿 Calm &amp; Meditative</span>
+                    <span style="font-size: 0.7rem; opacity: 0.8;">Slow &amp; Soothing</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Pitch and Rate Fine Tuning Sliders -->
+              <div class="slider-group" style="margin-top: 0.25rem;">
+                <div class="slider-label-row">
+                  <span>Voice Pitch:</span>
+                  <span class="slider-val-tag" id="labelAudioPitch">1.00x</span>
+                </div>
+                <input type="range" id="audioPitchSlider" class="audio-range-slider" min="0.5" max="1.8" step="0.05" value="1.0">
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span>Speech Speed / Rate:</span>
+                  <span class="slider-val-tag" id="labelAudioRate">1.00x</span>
+                </div>
+                <input type="range" id="audioRateSlider" class="audio-range-slider" min="0.5" max="2.0" step="0.05" value="1.0">
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+                <button class="btn btn-primary btn-sm" id="btnAuditionVoice" style="flex: 1;">
+                  ▶️ Audition Voice
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btnStopAudition">
+                  ⏹️ Stop
+                </button>
+              </div>
+            </div>
+
+            <!-- Column 3: Voice Cloning & Voice Merger (Create New Voices) -->
+            <div class="audio-card">
+              <div class="audio-card-header">
+                <div class="audio-card-title">
+                  <span>🧬 Voice Cloning &amp; Voice Merger</span>
+                </div>
+                <span class="badge-enhance-mode">AI Synthesis</span>
+              </div>
+
+              <!-- Tab Toggles for Cloning vs Merger vs F5-TTS -->
+              <div class="image-source-tabs" style="margin-bottom: 0.75rem;">
+                <button class="btn btn-xs btn-primary" id="btnTabVoiceClone">🎙️ Clone Voice</button>
+                <button class="btn btn-xs btn-secondary" id="btnTabVoiceMerger">🧬 Voice Merger</button>
+                <button class="btn btn-xs btn-secondary" id="btnTabF5TTS">⚡ F5-TTS Neural Clone</button>
+              </div>
+
+              <!-- Sub-panel A: Voice Cloning -->
+              <div id="panelVoiceClone">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                  Speak into your mic for 3–5 seconds or upload an audio sample to extract pitch frequency (F0) and vocal timbre resonance.
+                </p>
+
+                <div class="clone-recorder-box" id="cloneRecorderBox">
+                  <button class="btn btn-danger" id="btnToggleMicRecord">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="12" r="8"/>
+                    </svg>
+                    <span id="micRecordBtnLabel">Record Voice (Mic)</span>
+                  </button>
+                  <div id="micTimerLabel" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Click to start sampling voice profile...
+                  </div>
+                </div>
+
+                <div style="text-align: center; margin: 0.75rem 0; font-size: 0.75rem; color: var(--text-muted);">
+                  — OR UPLOAD AUDIO FILE —
+                </div>
+
+                <input type="file" id="audioCloneFileInput" accept="audio/*,.wav,.mp3,.ogg,.m4a,.webm" style="display: none;">
+                <button class="btn btn-secondary btn-sm" id="btnUploadCloneAudio" style="width: 100%;">
+                  📁 Choose Voice Audio File
+                </button>
+
+                <div id="cloneResultCard" class="clone-profile-card" style="display: none;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #34d399;">✅ 10s Voice Profile Extracted:</strong>
+                    <span id="cloneAlgorithm" style="font-size: 0.65rem; color: #a5b4fc; background: rgba(99,102,241,0.2); padding: 0.1rem 0.4rem; border-radius: 4px;">NACF Autocorrelation</span>
+                  </div>
+                  <div class="clone-profile-row" style="margin-top: 0.4rem;">
+                    <span>Fundamental Pitch (F0):</span>
+                    <span id="cloneFreqHz" style="font-weight: 700;">145 Hz</span>
+                  </div>
+                  <div class="clone-profile-row">
+                    <span>Timbre Character:</span>
+                    <span id="cloneTimbre">Deep / Resonant</span>
+                  </div>
+                  <div class="clone-profile-row">
+                    <span>Speech Density / Purity:</span>
+                    <span id="cloneSpeechDensity" style="font-weight: 600; color: #34d399;">92% active</span>
+                  </div>
+                  <div class="clone-profile-row">
+                    <span>Calibrated Pitch Scale:</span>
+                    <span id="clonePitchVal">0.85x</span>
+                  </div>
+                  <button class="btn btn-xs btn-primary" id="btnApplyClonedVoice" style="margin-top: 0.5rem; width: 100%;">
+                    Apply Cloned Voice to Narration
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sub-panel B: Voice Merger / Hybrid Voice Creation -->
+              <div id="panelVoiceMerger" style="display: none;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+                  Blend two different voices with custom weight ratios to synthesize a completely brand-new, unique synthetic voice.
+                </p>
+
+                <div class="form-group-enhance">
+                  <label class="enhance-label">Voice A (Base Tone):</label>
+                  <select id="mergeVoiceA" class="form-select-enhance">
+                    <option value="gemini-lyra">✨ Lyra (Gemini AI - Crystal Melodic)</option>
+                    <option value="gemini-puck">⚡ Puck (Gemini AI - Male)</option>
+                    <option value="gemini-charon" selected>🎬 Charon (Gemini AI - Male Deep)</option>
+                    <option value="gemini-kore">📖 Kore (Gemini AI - Female Warm)</option>
+                    <option value="google-journey-f">🌟 Journey-F (Google - Female)</option>
+                  </select>
+                </div>
+
+                <div class="form-group-enhance" style="margin-top: 0.5rem;">
+                  <label class="enhance-label">Voice B (Blend Accent):</label>
+                  <select id="mergeVoiceB" class="form-select-enhance">
+                    <option value="gemini-lyra">✨ Lyra (Gemini AI - Crystal Melodic)</option>
+                    <option value="gemini-fenrir">🛡️ Fenrir (Gemini AI - Male Bold)</option>
+                    <option value="gemini-aoede">🎙️ Aoede (Gemini AI - Female)</option>
+                    <option value="gemini-zephyr">✨ Zephyr (Gemini AI - Female)</option>
+                    <option value="google-journey-d" selected>🎧 Journey-D (Google - Male)</option>
+                  </select>
+                </div>
+
+                <div class="slider-group" style="margin-top: 0.5rem;">
+                  <div class="slider-label-row">
+                    <span>Voice A Ratio:</span>
+                    <span class="slider-val-tag" id="labelMergeRatio">50% A / 50% B</span>
+                  </div>
+                  <input type="range" id="mergeRatioSlider" class="audio-range-slider" min="0" max="100" step="5" value="50">
+                </div>
+
+                <button class="btn btn-primary btn-sm" id="btnSynthesizeMergedVoice" style="width: 100%; margin-top: 0.75rem;">
+                  🧬 Synthesize Hybrid Voice
+                </button>
+                <div id="mergeVoiceStatus" style="font-size: 0.8rem; color: var(--success); margin-top: 0.4rem; display: none;"></div>
+              </div>
+
+              <!-- Sub-panel C: F5-TTS Neural Zero-Shot Emotional Voice Cloning -->
+              <div id="panelF5TTS" style="display: none;">
+                <div style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                    <strong style="color: #a5b4fc; font-size: 0.85rem;">⚡ F5-TTS Flow Diffusion</strong>
+                    <span style="font-size: 0.65rem; background: #6366f1; color: white; padding: 0.1rem 0.4rem; border-radius: 4px;">Zero-Shot</span>
+                  </div>
+                  <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; line-height: 1.35;">
+                    Clones realistic human emotions, laughter, whispers, and vocal timber from 5–10s audio references using Flow Matching.
+                  </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
+                  <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+                    <span>Local Engine:</span>
+                    <a href="http://127.0.0.1:7860" target="_blank" style="color: #818cf8; text-decoration: underline; font-weight: 600;">http://127.0.0.1:7860 ↗</a>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary); background: var(--bg-tertiary); padding: 0.5rem; border-radius: 6px; line-height: 1.4;">
+                    1. Double-click <code style="color: #38bdf8;">start_f5_tts.bat</code> to launch.<br>
+                    2. Upload 10s voice clip with target emotion in Gradio.<br>
+                    3. Generate &amp; import the resulting WAV below!
+                  </div>
+                </div>
+
+                <input type="file" id="f5ttsAudioFileInput" accept="audio/*,.wav,.mp3" style="display: none;">
+                <button class="btn btn-primary btn-sm" id="btnImportF5TTSWav" style="width: 100%;">
+                  📥 Import F5-TTS WAV into Video
+                </button>
+                <div id="f5ttsImportStatus" style="font-size: 0.75rem; color: #34d399; margin-top: 0.4rem; display: none;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             SUBVIEW 2: CHARACTER CAST & VOICE STUDIO
+             ========================================== -->
+        <div id="subViewCharacters" class="audio-subview-panel">
+          <div class="characters-header-strip">
+            <div class="characters-filter-group">
+              <div class="gender-pill-bar" id="charGenderFilterBar">
+                <button type="button" class="gender-pill active" id="charFilterAll" data-gender="all">
+                  👥 All Characters
+                </button>
+                <button type="button" class="gender-pill" id="charFilterMale" data-gender="male">
+                  👨 Male
+                </button>
+                <button type="button" class="gender-pill" id="charFilterFemale" data-gender="female">
+                  👩 Female
+                </button>
+              </div>
+
+              <div class="char-search-wrapper">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="charSearchInput" class="form-input char-search-input" placeholder="Search character by name, role, or voice...">
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" id="btnOpenAddCharacterModal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add New Character
+            </button>
+          </div>
+
+          <!-- Characters Grid Container -->
+          <div class="characters-grid" id="charactersGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- ==========================================
+             SUBVIEW 3: GOOGLE VOICE MERGER & CREATOR
+             ========================================== -->
+        <div id="subViewMerger" class="audio-subview-panel">
+          <div class="voice-merger-studio-card">
+            <div class="merger-header-row">
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>🧬 Google Voice Merger &amp; Hybrid Synthesizer</span>
+                  <span class="badge-enhance-mode">AI Tone Blending</span>
+                </h3>
+                <p style="margin: 0.3rem 0 0; font-size: 0.85rem; color: var(--text-secondary);">
+                  Select two official Google voice models, adjust the blending ratio and acoustic pitch/rate resonance, and synthesize a unique hybrid voice for your video characters.
+                </p>
+              </div>
+            </div>
+
+            <div class="merger-cols-grid">
+              <!-- Voice A Selection Card -->
+              <div class="voice-source-box">
+                <div class="source-box-title">
+                  <span class="source-badge">Voice A</span>
+                  <span style="font-size: 0.8rem; color: var(--text-secondary);" id="labelVoiceAInfo">Base Voice</span>
+                </div>
+                <div class="form-group-enhance" style="margin-top: 0.5rem;">
+                  <label class="enhance-label">Pick Voice A:</label>
+                  <select id="selectMergerVoiceA" class="form-select-enhance">
+                    <!-- Populated dynamically with all Google voices -->
+                  </select>
+                </div>
+                <div class="voice-preview-bubble" id="previewBubbleA">
+                  <div style="font-weight: 600; font-size: 0.85rem;" id="bubbleAName">Charon</div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary);" id="bubbleADesc">Deep Resonant Bass (Gemini 2.0)</div>
+                </div>
+                <button type="button" class="btn btn-xs btn-secondary" id="btnAuditionVoiceA" style="width: 100%; margin-top: 0.5rem;">
+                  ▶️ Audition Voice A
+                </button>
+              </div>
+
+              <!-- Center Ratio Slider & Balance Visualizer -->
+              <div class="merger-center-controller">
+                <div class="blend-ratio-visual">
+                  <span id="visualRatioA">50% A</span>
+                  <div class="blend-meter-bar">
+                    <div class="blend-meter-fill" id="blendMeterFill" style="width: 50%;"></div>
+                  </div>
+                  <span id="visualRatioB">50% B</span>
+                </div>
+
+                <div class="slider-group" style="margin-top: 0.75rem;">
+                  <div class="slider-label-row">
+                    <span style="font-weight: 600; font-size: 0.85rem;">Blend Weight Ratio:</span>
+                    <span class="slider-val-tag" id="labelMergerRatioVal">50% A / 50% B</span>
+                  </div>
+                  <input type="range" id="mergerRatioSlider" class="audio-range-slider" min="0" max="100" step="5" value="50">
+                </div>
+
+                <div class="fine-tuning-grid">
+                  <div class="slider-group">
+                    <div class="slider-label-row">
+                      <span>Pitch Offset:</span>
+                      <span class="slider-val-tag" id="labelMergerPitch">0.00</span>
+                    </div>
+                    <input type="range" id="mergerPitchSlider" class="audio-range-slider" min="-0.4" max="0.4" step="0.05" value="0">
+                  </div>
+                  <div class="slider-group">
+                    <div class="slider-label-row">
+                      <span>Speed Offset:</span>
+                      <span class="slider-val-tag" id="labelMergerRate">0.00</span>
+                    </div>
+                    <input type="range" id="mergerRateSlider" class="audio-range-slider" min="-0.3" max="0.3" step="0.05" value="0">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Voice B Selection Card -->
+              <div class="voice-source-box">
+                <div class="source-box-title">
+                  <span class="source-badge">Voice B</span>
+                  <span style="font-size: 0.8rem; color: var(--text-secondary);" id="labelVoiceBInfo">Blend Accent</span>
+                </div>
+                <div class="form-group-enhance" style="margin-top: 0.5rem;">
+                  <label class="enhance-label">Pick Voice B:</label>
+                  <select id="selectMergerVoiceB" class="form-select-enhance">
+                    <!-- Populated dynamically with all Google voices -->
+                  </select>
+                </div>
+                <div class="voice-preview-bubble" id="previewBubbleB">
+                  <div style="font-weight: 600; font-size: 0.85rem;" id="bubbleBName">Puck</div>
+                  <div style="font-size: 0.75rem; color: var(--text-secondary);" id="bubbleBDesc">Crisp Dynamic Baritone (Gemini 2.0)</div>
+                </div>
+                <button type="button" class="btn btn-xs btn-secondary" id="btnAuditionVoiceB" style="width: 100%; margin-top: 0.5rem;">
+                  ▶️ Audition Voice B
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Voice Metadata & Commit -->
+            <div class="merger-save-box">
+              <div class="merger-meta-inputs">
+                <div class="form-group-enhance" style="flex: 1;">
+                  <label class="enhance-label">Hybrid Voice Name:</label>
+                  <input type="text" id="inputMergedVoiceName" class="form-input" placeholder="e.g. Heroic Commander Puck, Cyber Elder">
+                </div>
+
+                <div class="form-group-enhance" style="width: 180px;">
+                  <label class="enhance-label">Gender Classification:</label>
+                  <select id="selectMergedVoiceGender" class="form-select-enhance">
+                    <option value="male">👨 Male</option>
+                    <option value="female">👩 Female</option>
+                  </select>
+                </div>
               </div>
 
               <div class="form-group-enhance" style="margin-top: 0.5rem;">
-                <label class="enhance-label">Voice B (Blend Accent):</label>
-                <select id="mergeVoiceB" class="form-select-enhance">
-                  <option value="energetic">⚡ YouTube Star Dynamic</option>
-                  <option value="calm">🌿 Calm Narrator</option>
-                  <option value="cinematic">🎬 Cinematic Deep Baritone</option>
-                </select>
+                <label class="enhance-label">Voice Description &amp; Character Persona:</label>
+                <input type="text" id="inputMergedVoiceDesc" class="form-input" placeholder="Describe the timbre, mood, and intended character role...">
               </div>
 
-              <div class="slider-group" style="margin-top: 0.5rem;">
-                <div class="slider-label-row">
-                  <span>Voice A Ratio:</span>
-                  <span class="slider-val-tag" id="labelMergeRatio">50% A / 50% B</span>
-                </div>
-                <input type="range" id="mergeRatioSlider" class="audio-range-slider" min="0" max="100" step="5" value="50">
+              <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" id="btnAuditionHybridVoice">
+                  ▶️ Audition Hybrid Voice
+                </button>
+                <button type="button" class="btn btn-primary" id="btnSaveHybridVoiceToLibrary">
+                  💾 Save to Google Voice Library
+                </button>
+              </div>
+              <div id="mergerSaveStatus" style="font-size: 0.85rem; color: var(--success); margin-top: 0.5rem; display: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             SUBVIEW 4: SEARCHABLE GOOGLE VOICE LIBRARY EXPLORER
+             ========================================== -->
+        <div id="subViewLibrary" class="audio-subview-panel">
+          <div class="voice-library-toolbar">
+            <div class="voice-library-filters">
+              <!-- Gender Separation Filter Pills -->
+              <div class="gender-pill-bar" id="libGenderFilterBar">
+                <button type="button" class="gender-pill active" id="libFilterAll" data-gender="all">
+                  🌟 All Voices (<span id="countLibAll">0</span>)
+                </button>
+                <button type="button" class="gender-pill pill-male" id="libFilterMale" data-gender="male">
+                  👨 Male (<span id="countLibMale">0</span>)
+                </button>
+                <button type="button" class="gender-pill pill-female" id="libFilterFemale" data-gender="female">
+                  👩 Female (<span id="countLibFemale">0</span>)
+                </button>
               </div>
 
-              <button class="btn btn-primary btn-sm" id="btnSynthesizeMergedVoice" style="width: 100%; margin-top: 0.75rem;">
-                🧬 Synthesize Hybrid Voice
-              </button>
-              <div id="mergeVoiceStatus" style="font-size: 0.8rem; color: var(--success); margin-top: 0.4rem; display: none;"></div>
+              <!-- Engine / Category Filter -->
+              <select id="libCategorySelect" class="form-select-enhance" style="width: 220px;">
+                <option value="all">🌐 All Google Engines</option>
+                <option value="gemini">🤖 Gemini 2.0 AI Voices</option>
+                <option value="journey">🌟 Google Journey (Conversational)</option>
+                <option value="studio">📡 Google Studio (Broadcaster)</option>
+                <option value="neural2">⚡ Google Neural2 (High Speed)</option>
+                <option value="telugu">🌸 Google Telugu Standard</option>
+                <option value="hybrid">🧬 Custom Merged / Hybrids</option>
+              </select>
             </div>
 
-            <!-- Sub-panel C: F5-TTS Neural Zero-Shot Emotional Voice Cloning -->
-            <div id="panelF5TTS" style="display: none;">
-              <div style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                  <strong style="color: #a5b4fc; font-size: 0.85rem;">⚡ F5-TTS Flow Diffusion</strong>
-                  <span style="font-size: 0.65rem; background: #6366f1; color: white; padding: 0.1rem 0.4rem; border-radius: 4px;">Zero-Shot</span>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; line-height: 1.35;">
-                  Clones realistic human emotions, laughter, whispers, and vocal timber from 5–10s audio references using Flow Matching.
-                </p>
-              </div>
-
-              <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem;">
-                <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between;">
-                  <span>Local Engine:</span>
-                  <a href="http://127.0.0.1:7860" target="_blank" style="color: #818cf8; text-decoration: underline; font-weight: 600;">http://127.0.0.1:7860 ↗</a>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary); background: var(--bg-tertiary); padding: 0.5rem; border-radius: 6px; line-height: 1.4;">
-                  1. Double-click <code style="color: #38bdf8;">start_f5_tts.bat</code> to launch.<br>
-                  2. Upload 10s voice clip with target emotion in Gradio.<br>
-                  3. Generate &amp; import the resulting WAV below!
-                </div>
-              </div>
-
-              <input type="file" id="f5ttsAudioFileInput" accept="audio/*,.wav,.mp3" style="display: none;">
-              <button class="btn btn-primary btn-sm" id="btnImportF5TTSWav" style="width: 100%;">
-                📥 Import F5-TTS WAV into Video
-              </button>
-              <div id="f5ttsImportStatus" style="font-size: 0.75rem; color: #34d399; margin-top: 0.4rem; display: none;"></div>
+            <!-- Real-Time Voice Search Input -->
+            <div class="lib-search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="libSearchInput" class="form-input" placeholder="Type voice name, role, or description (e.g. 'deep', 'storyteller', 'puck', 'warm', 'baritone')...">
             </div>
+          </div>
+
+          <!-- Voice Cards Grid -->
+          <div class="voice-library-grid" id="voiceLibraryGrid">
+            <!-- Dynamically populated with all Google Voice models -->
           </div>
         </div>
 
@@ -1084,16 +1387,23 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
           </div>
 
           <div class="audio-player-row">
-            <audio id="audioStudioPlayer" controls style="display: none;"></audio>
+            <audio id="audioStudioPlayer" controls style="display: none; width: 100%;"></audio>
+            <canvas id="audioDspVisualizerCanvas" width="650" height="60" style="width: 100%; height: 60px; background: #0a0e17; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: none; margin: 0.5rem 0;"></canvas>
             <span id="audioPlayerStatus" style="font-size: 0.85rem; color: var(--text-muted);">
               No audio track rendered yet. Click "Generate Voiceover Audio Track" above.
             </span>
           </div>
 
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <button class="btn btn-secondary" id="btnMasterAudioWithDSP" style="display: none;" title="Apply 48kHz Studio DSP Chain: High-Pass 80Hz + 3.2kHz Vocal Presence + Dynamics Compressor + Peak Normalization">
+              ✨ Master Audio (48kHz DSP)
+            </button>
             <a id="btnDownloadAudioTrack" class="btn btn-secondary" download="clipmerge-voiceover.wav" style="pointer-events: none; opacity: 0.5;">
               ⬇️ Download Audio (WAV)
             </a>
+            <button class="btn btn-secondary" id="btnSendVoiceToEditor" style="display: none;" title="Send this voiceover track directly to the Multi-Track Video Editing Station">
+              🎬 Send to Editing Station
+            </button>
             <button class="btn btn-primary" id="btnAttachToMergedVideo" disabled>
               🎬 Attach Voiceover to Merged Video
             </button>
@@ -1104,7 +1414,413 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
       </div>
     </div>
 
+    <!-- ====================================================================
+         VIEW 5: DEDICATED MULTI-TRACK VIDEO & AUDIO EDITING STATION
+         ==================================================================== -->
+    <div id="viewVideoEditor" class="app-view">
+      <div class="video-editor-container">
+        
+        <!-- Editor Header & Quick Action Strip -->
+        <div class="editor-header-bar">
+          <div class="editor-header-left">
+            <h2>🎬 Multi-Track Video &amp; Audio Editing Station</h2>
+            <p class="editor-sub">
+              Connects stitched video clips and audio tracks from both stations into a synchronized multi-track timeline with live preview, real-time auto-ducking, and final master rendering.
+            </p>
+          </div>
+          <div class="editor-header-actions">
+            <button type="button" class="btn btn-sm btn-secondary" id="btnEditorImportClips" title="Pull clips currently uploaded in the Video Stitcher">
+              📥 Import Video Clips
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnEditorImportVoice" title="Pull voiceover track from the Audio Studio">
+              🎙️ Import Voiceover
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnEditorImportMusic" title="Upload custom background music file">
+              🎵 Add Background Music
+            </button>
+            <input type="file" id="editorMusicFileInput" accept="audio/*,.mp3,.wav,.m4a" style="display: none;">
+            <button type="button" class="btn btn-sm btn-primary" id="btnRenderMasterVideo" title="Render all video clips and audio tracks into a master MP4">
+              ⚡ Render &amp; Export Final Video
+            </button>
+          </div>
+        </div>
+
+        <!-- Upper Deck: Live Preview Monitor + Audio Mixer Strip -->
+        <div class="editor-upper-deck">
+          
+          <!-- Left: Live Synchronized Monitor -->
+          <div class="editor-monitor-card">
+            <div class="monitor-top-bar">
+              <div class="monitor-format-selector">
+                <label>Format:</label>
+                <select id="selectEditorAspect" class="editor-select-sm">
+                  <option value="16:9" selected>16:9 Landscape (YouTube)</option>
+                  <option value="9:16">9:16 Vertical (Shorts/Reels)</option>
+                  <option value="1:1">1:1 Square (Social Feed)</option>
+                  <option value="4:5">4:5 Portrait (Instagram)</option>
+                </select>
+              </div>
+              <div class="monitor-res-selector">
+                <label>Resolution:</label>
+                <select id="selectEditorResolution" class="editor-select-sm">
+                  <option value="1080p" selected>1080P Full HD</option>
+                  <option value="2160p">2160P 4K UHD</option>
+                  <option value="original">Original Dimensions</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Preview Monitor Canvas / Video Viewport -->
+            <div class="editor-preview-viewport aspect-16-9" id="previewMonitorContainer">
+              <video id="editorPreviewVideo" playsinline preload="metadata"></video>
+              <audio id="editorVoiceAudio" preload="auto"></audio>
+              <audio id="editorMusicAudio" preload="auto"></audio>
+              <div id="editorEmptyOverlay" class="editor-empty-overlay">
+                <div class="empty-overlay-content">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                  </svg>
+                  <h4>Editing Station Ready</h4>
+                  <p>Click "Import Video Clips" to load your video clips, or import voiceover from Audio Studio.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transport Controls -->
+            <div class="editor-transport-bar">
+              <div class="transport-controls-left">
+                <button type="button" class="btn-transport" id="btnEditorRewind" title="Rewind to Start">
+                  ⏮️
+                </button>
+                <button type="button" class="btn-transport btn-play-main" id="btnEditorPlayPause" title="Play / Pause Synchronized Preview">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Play Preview</span>
+                </button>
+              </div>
+              <div class="transport-timecode">
+                <span id="timelineCurrentTime" class="timecode-current">00:00.0</span>
+                <span class="timecode-divider">/</span>
+                <span id="timelineTotalTime" class="timecode-total">00:00.0</span>
+              </div>
+              <div class="transport-status">
+                <span id="duckingIndicator" class="ducking-indicator" title="Auto-Ducking: Dynamically ducks BGM during speech">
+                  <span class="duck-dot"></span> Auto-Ducking
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Audio Mixer & Mastering Strip -->
+          <div class="editor-mixer-card">
+            <div class="mixer-card-header">
+              <h3>🎛️ Audio Mixer &amp; DSP Master Strip</h3>
+              <span class="badge-enhance-mode">48 kHz Studio</span>
+            </div>
+
+            <div class="mixer-channels-grid">
+              
+              <!-- Channel 1: Video Audio -->
+              <div class="mixer-channel-strip">
+                <span class="channel-label">🎞️ Video Sound</span>
+                <div class="channel-fader-wrapper">
+                  <input type="range" id="mixerVideoVol" min="0" max="1" step="0.05" value="0.8" class="mixer-fader">
+                </div>
+                <span id="labelMixerVideoVol" class="channel-value">80%</span>
+              </div>
+
+              <!-- Channel 2: Voiceover Narration -->
+              <div class="mixer-channel-strip active-channel">
+                <span class="channel-label">🎙️ Voiceover</span>
+                <div class="channel-fader-wrapper">
+                  <input type="range" id="mixerVoiceVol" min="0" max="1" step="0.05" value="1.0" class="mixer-fader">
+                </div>
+                <span id="labelMixerVoiceVol" class="channel-value">100%</span>
+              </div>
+
+              <!-- Channel 3: Background Music -->
+              <div class="mixer-channel-strip">
+                <span class="channel-label">🎵 BGM Music</span>
+                <div class="channel-fader-wrapper">
+                  <input type="range" id="mixerMusicVol" min="0" max="1" step="0.05" value="0.35" class="mixer-fader">
+                </div>
+                <span id="labelMixerMusicVol" class="channel-value">35%</span>
+              </div>
+
+            </div>
+
+            <!-- DSP Mastering & Auto-Ducking Controls -->
+            <div class="mixer-dsp-settings">
+              <div class="dsp-setting-item">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="chkAutoDucking" checked>
+                  <span class="checkmark"></span>
+                  <span>⚡ Auto-Ducking (-14dB BGM drop during voice)</span>
+                </label>
+              </div>
+              <div class="dsp-setting-item">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="chkHighpassFilter" checked>
+                  <span class="checkmark"></span>
+                  <span>🛡️ 80Hz Low-Cut (Removes rumble &amp; hum)</span>
+                </label>
+              </div>
+              <div class="dsp-setting-item">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="chkVocalPresence" checked>
+                  <span class="checkmark"></span>
+                  <span>✨ Vocal Clarity Boost (+2.5dB at 3.2kHz)</span>
+                </label>
+              </div>
+              <div class="dsp-setting-item">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="chkLoudnorm" checked>
+                  <span class="checkmark"></span>
+                  <span>📻 EBU R128 Broadcast Normalization (-14 LUFS)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lower Deck: Multi-Track Timeline Visualizer -->
+        <div class="editor-timeline-deck">
+          <div class="timeline-header-bar">
+            <span class="timeline-title">⏱️ Multi-Track Synchronized Timeline</span>
+            <div class="timeline-legend">
+              <span class="legend-pill video-pill">Track 1: Video Sequence</span>
+              <span class="legend-pill voice-pill">Track 2: Voiceover Narration</span>
+              <span class="legend-pill music-pill">Track 3: Background Score</span>
+            </div>
+          </div>
+
+          <!-- Timeline Container with Time Ruler & Playhead -->
+          <div class="timeline-viewport-wrapper">
+            
+            <!-- Time Ruler Area -->
+            <div class="timeline-ruler" id="timelineRulerArea">
+              <div class="playhead-marker" id="timelineScrubber">
+                <div class="playhead-cap"></div>
+              </div>
+            </div>
+
+            <!-- Track Lanes Container -->
+            <div class="timeline-tracks-container" id="timelineTracksContainer">
+              <div class="playhead-vertical-line" id="playheadLine"></div>
+
+              <!-- Track 1: Video Track -->
+              <div class="timeline-track-lane" id="laneTrackVideo">
+                <div class="track-header-strip">
+                  <span class="track-title">🎞️ Video</span>
+                </div>
+                <div class="track-content-lane" id="trackVideoClips"></div>
+              </div>
+
+              <!-- Track 2: Voiceover Track -->
+              <div class="timeline-track-lane" id="laneTrackVoice">
+                <div class="track-header-strip">
+                  <span class="track-title">🎙️ Voice</span>
+                </div>
+                <div class="track-content-lane" id="trackVoiceover"></div>
+              </div>
+
+              <!-- Track 3: Background Music Track -->
+              <div class="timeline-track-lane" id="laneTrackMusic">
+                <div class="track-header-strip">
+                  <span class="track-title">🎵 Music</span>
+                </div>
+                <div class="track-content-lane" id="trackMusic"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </main>
+
+  <!-- ====================================================================
+       CHARACTER MODAL: ADD / EDIT CHARACTER CAST
+       ==================================================================== -->
+  <div class="modal-backdrop" id="characterModal" style="display: none;">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 id="modalCharacterTitle">👤 Add New Character</h3>
+        <button class="modal-close" id="btnCloseCharModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="charEditId" value="">
+
+        <!-- Avatar Selection: Upload or Curated Presets -->
+        <div class="form-group-enhance">
+          <label class="enhance-label">Character Image / Avatar:</label>
+          <div class="char-avatar-section">
+            <div class="avatar-preview-box" id="charAvatarPreview">
+              <span id="charAvatarPlaceholder">🎭</span>
+              <img id="charAvatarImg" src="" alt="Character Avatar" style="display: none;">
+            </div>
+
+            <div class="avatar-pick-controls">
+              <div class="avatar-tabs">
+                <button type="button" class="btn btn-xs btn-primary" id="btnTabAvatarPresets">Gallery Presets</button>
+                <button type="button" class="btn btn-xs btn-secondary" id="btnTabAvatarUpload">Custom Upload</button>
+              </div>
+
+              <!-- Preset Avatars -->
+              <div class="preset-avatars-grid" id="presetAvatarsGrid">
+                <!-- 12 Presets rendered dynamically -->
+              </div>
+
+              <!-- Upload / URL Input (Hidden initially) -->
+              <div id="avatarUploadContainer" style="display: none; margin-top: 0.5rem;">
+                <input type="file" id="charAvatarFileInput" accept="image/*" style="display: none;">
+                <button type="button" class="btn btn-sm btn-secondary" id="btnTriggerAvatarUpload" style="width: 100%;">
+                  📁 Upload Character Photo
+                </button>
+                <input type="text" id="charAvatarUrlInput" class="form-input" style="margin-top: 0.4rem;" placeholder="Or paste image URL...">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group-enhance">
+            <label class="enhance-label">Character Name: *</label>
+            <input type="text" id="charNameInput" class="form-input" placeholder="e.g. Vikram, Maya, Dr. Ray">
+          </div>
+
+          <div class="form-group-enhance">
+            <label class="enhance-label">Gender Classification: *</label>
+            <div class="char-gender-radio-group">
+              <label class="gender-radio-label">
+                <input type="radio" name="charGender" value="male" id="charGenderMale" checked>
+                <span>👨 Male</span>
+              </label>
+              <label class="gender-radio-label">
+                <input type="radio" name="charGender" value="female" id="charGenderFemale">
+                <span>👩 Female</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group-enhance" style="margin-top: 0.5rem;">
+          <label class="enhance-label">Character Role &amp; Description:</label>
+          <input type="text" id="charRoleInput" class="form-input" placeholder="e.g. Lead investigative reporter, calm and analytical">
+        </div>
+
+        <!-- Voice Assignment -->
+        <div class="form-group-enhance" style="margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="enhance-label" style="margin: 0;">Assigned Voice (Google Models &amp; Hybrids): *</label>
+            <button type="button" class="btn btn-xs btn-secondary" id="btnAuditionSelectedCharVoice">
+              ▶️ Audition Voice
+            </button>
+          </div>
+          <select id="charVoiceSelect" class="form-select-enhance">
+            <!-- Populated with all Google voice models grouped by engine & gender -->
+          </select>
+        </div>
+
+        <!-- Voice Tuning -->
+        <div class="char-voice-tuning-row">
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Voice Pitch:</span>
+              <span class="slider-val-tag" id="labelCharPitch">1.00x</span>
+            </div>
+            <input type="range" id="charPitchSlider" class="audio-range-slider" min="0.5" max="1.8" step="0.05" value="1.0">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Speed / Rate:</span>
+              <span class="slider-val-tag" id="labelCharRate">1.00x</span>
+            </div>
+            <input type="range" id="charRateSlider" class="audio-range-slider" min="0.5" max="2.0" step="0.05" value="1.0">
+          </div>
+        </div>
+
+        <!-- Dialogue / Script specifically for this character -->
+        <div class="form-group-enhance" style="margin-top: 0.75rem;">
+          <label class="enhance-label">Character Dialogue / Spoken Lines:</label>
+          <textarea id="charScriptInput" class="form-textarea" style="height: 90px;" placeholder="Type lines spoken by this character in English or Telugu..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelCharModal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnSaveCharacter">Save Character</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       GOOGLE WORKSPACE HUB MODAL
+       ==================================================================== -->
+  <div class="modal-backdrop" id="workspaceModal" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <svg width="22" height="22" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <h3 style="margin: 0;">Google Workspace Hub</h3>
+        </div>
+        <button class="modal-close" id="btnCloseWorkspaceModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="workspace-status-card" id="workspaceStatusCard">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong id="workspaceAccountEmail">Ready to Connect</strong>
+            <span class="badge-enhance-mode" id="workspaceAuthBadge">1-Click Ready</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0.4rem 0 0.8rem; line-height: 1.4;" id="workspaceAccountDesc">
+            Directly connect your Google Workspace account for calendar releases and Gmail composition, or use instant 1-Click web intents.
+          </p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-primary" id="btnWorkspaceSignIn">
+              🔑 Sign in with Google
+            </button>
+            <button class="btn btn-sm btn-secondary" id="btnWorkspaceSignOut" style="display: none;">
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 1.25rem;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.4rem;">📅 Google Calendar Scheduling</h4>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+            Schedule your video premiere dates, production deadlines, and review events directly.
+          </p>
+          <button class="btn btn-sm btn-secondary" id="btnHubOpenCalendar">
+            📅 Schedule on Google Calendar
+          </button>
+        </div>
+
+        <div style="margin-top: 1.25rem;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.4rem;">✉️ Gmail Dispatch &amp; Review</h4>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+            Compose pre-filled video delivery emails, chapter markers, and approvals via Gmail.
+          </p>
+          <button class="btn btn-sm btn-secondary" id="btnHubOpenGmail">
+            ✉️ Compose in Gmail
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseWorkspaceFooter">Close</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Google Calendar Scheduling Modal -->
   <div class="modal-backdrop" id="calendarModal" style="display: none;">
@@ -1256,6 +1972,99 @@ Shot 4: Call to Action - Outro with final download link..."></textarea>
           </svg>
           Enhance & Download Image
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projects & History Modal (SQLite Backend) -->
+  <div class="modal-backdrop" id="projectsModal" style="display: none;">
+    <div class="modal-card" style="max-width: 720px; width: 95%;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <h3 style="margin: 0;">📂 Projects &amp; Render History</h3>
+          <span class="sqlite-status-badge connected" id="modalSqliteStatus" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">
+            <span class="sqlite-dot"></span> SQLite Active
+          </span>
+        </div>
+        <button class="modal-close" id="btnCloseProjectsModal">✕</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Sub-tabs: Saved Projects vs Export History vs Save Current -->
+        <div class="image-source-tabs" style="margin-bottom: 1rem;">
+          <button class="btn btn-sm btn-primary" id="btnTabListProjects">📁 Saved Projects (<span id="projectCountBadge">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="btnTabListRenders">🎬 Export History (<span id="renderCountBadge">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="btnTabSaveCurrentProject">💾 Save Current Timeline</button>
+        </div>
+
+        <!-- Panel 1: Saved Projects List -->
+        <div id="panelListProjects">
+          <div id="projectsListContainer" class="projects-grid">
+            <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+              Loading saved projects from SQLite...
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Render History List -->
+        <div id="panelListRenders" style="display: none;">
+          <div id="rendersListContainer">
+            <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
+              Loading export logs from SQLite...
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Save Current Project Form -->
+        <div id="panelSaveCurrentProject" style="display: none;">
+          <div class="settings-section">
+            <h4>💾 Save Timeline to SQLite</h4>
+            <p class="settings-desc">
+              Saves current video clips, prompt annotations, storyboard ordering, and voiceover audio settings permanently in local SQLite.
+            </p>
+            <div class="form-group-enhance" style="margin-top: 0.75rem;">
+              <label class="enhance-label">Project Title:</label>
+              <input type="text" id="inputSaveProjectName" class="form-input" placeholder="e.g. YouTube Tech Review Ep 1">
+            </div>
+            <div class="form-group-enhance" style="margin-top: 0.75rem;">
+              <label class="enhance-label">Project Description / Notes:</label>
+              <textarea id="inputSaveProjectDesc" class="form-textarea" style="height: 70px;" placeholder="Optional notes about this cut..."></textarea>
+            </div>
+            <div id="saveProjectStatusMsg" style="font-size: 0.85rem; margin-top: 0.5rem; display: none;"></div>
+            <button class="btn btn-primary" id="btnConfirmSaveProject" style="margin-top: 0.75rem; width: 100%;">
+              💾 Commit Project to SQLite
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseProjectsModalFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Master Video Composite Render Modal -->
+  <div class="modal-backdrop" id="renderMasterModal" style="display: none;">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3>🎬 Rendering Final Master Video</h3>
+        <button class="modal-close" id="btnCloseRenderMasterModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="progress-bar-container" style="margin-bottom: 1rem;">
+          <div class="progress-fill" id="renderMasterProgressFill" style="width: 0%;"></div>
+        </div>
+        <p id="renderMasterStatusText" style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+          Compositing multi-track video and audio in FFmpeg.wasm...
+        </p>
+
+        <div id="renderMasterResultArea" style="display: none; text-align: center;">
+          <video id="renderMasterResultPlayer" controls style="width: 100%; border-radius: var(--radius-md); max-height: 320px; background: #000; margin-bottom: 1rem;"></video>
+          <div style="display: flex; gap: 0.75rem; justify-content: center;">
+            <a id="btnDownloadRenderedMaster" class="btn btn-primary btn-lg" download="clipmerge-final-master.mp4">
+              ⬇️ Download Final Master Video (MP4)
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>

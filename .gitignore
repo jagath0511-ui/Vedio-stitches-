@@ -8,4 +8,7 @@ dist/
 build/
 *.wasm
 clipmerge/ffmpeg-core/*.wasm
+*.db
+*.sqlite
+*.sqlite3
 

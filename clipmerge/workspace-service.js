@@ -1,28 +1,70 @@
 /**
- * ClipMerge - Google Workspace Service (Calendar & Gmail)
+ * ClipMerge - Google Workspace Service (Calendar, Gmail & Drive)
  * Integrates scheduling video releases/reviews on Google Calendar
  * and composing/sending video summaries and approval links via Gmail.
+ * Supports both Google OAuth2 REST APIs and instant 1-Click Web Intents.
  */
 
 export class WorkspaceService {
+  constructor() {
+    this.accessToken = localStorage.getItem('clipmerge_google_access_token') || null;
+    this.connectedAccount = localStorage.getItem('clipmerge_google_account') || null;
+  }
+
+  setAccessToken(token, accountEmail = null) {
+    this.accessToken = token || null;
+    if (token) {
+      localStorage.setItem('clipmerge_google_access_token', token);
+      if (accountEmail) {
+        this.connectedAccount = accountEmail;
+        localStorage.setItem('clipmerge_google_account', accountEmail);
+      }
+    } else {
+      localStorage.removeItem('clipmerge_google_access_token');
+      localStorage.removeItem('clipmerge_google_account');
+      this.connectedAccount = null;
+    }
+  }
+
+  getAccessToken() {
+    return this.accessToken;
+  }
+
+  isConnected() {
+    return !!this.accessToken || !!this.connectedAccount;
+  }
+
+  getAccountInfo() {
+    return {
+      isConnected: this.isConnected(),
+      email: this.connectedAccount || (this.accessToken ? 'Connected Google Account' : null),
+      hasDirectApi: !!this.accessToken,
+    };
+  }
+
   /**
-   * Schedule a video release or review event on Google Calendar
-   * Supports both direct Google Calendar API (if OAuth token present) and instant 1-Click Calendar Web Intent
+   * Schedule a video release or review event on Google Calendar.
+   * Accepts { title, description, startTime, endTime, scheduledDate }
    */
-  async scheduleCalendarEvent({ title, description, scheduledDate, accessToken }) {
-    const start = new Date(scheduledDate || Date.now() + 3600 * 1000 * 24); // default tomorrow
-    const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
+  async scheduleEvent(options = {}) {
+    return this.scheduleCalendarEvent(options);
+  }
+
+  async scheduleCalendarEvent({ title, description, scheduledDate, startTime, endTime, accessToken }) {
+    const token = accessToken || this.accessToken;
+    const start = new Date(startTime || scheduledDate || Date.now() + 3600 * 1000 * 24); // default tomorrow
+    const end = endTime ? new Date(endTime) : new Date(start.getTime() + 60 * 60 * 1000); // 1 hour duration
 
     const eventTitle = `Video Release: ${title || 'ClipMerge Production'}`;
     const eventDescription = `${description || 'Merged video sequence and production assets.'}\n\nGenerated with ClipMerge Client-Side Suite.`;
 
     // Attempt direct Calendar API call if Google OAuth token is available
-    if (accessToken) {
+    if (token) {
       try {
         const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -43,7 +85,7 @@ export class WorkspaceService {
           };
         }
       } catch (err) {
-        console.warn('Direct Calendar API failed, using 1-click Web Intent:', err);
+        console.warn('Direct Calendar API failed, falling back to 1-click Web Intent:', err);
       }
     }
 
@@ -63,16 +105,21 @@ export class WorkspaceService {
   }
 
   /**
-   * Send or compose an email via Gmail with video details and chapters
-   * Supports both direct Gmail API and instant 1-Click Gmail Web Composer
+   * Send or compose an email via Gmail with video details and chapters.
+   * Accepts { to, toEmail, subject, body }
    */
-  async sendGmailNotification({ toEmail, subject, body, accessToken }) {
-    const recipient = toEmail || '';
+  async sendOrDraftEmail(options = {}) {
+    return this.sendGmailNotification(options);
+  }
+
+  async sendGmailNotification({ to, toEmail, subject, body, accessToken }) {
+    const token = accessToken || this.accessToken;
+    const recipient = to || toEmail || '';
     const emailSubject = subject || 'Your Merged Video is Ready (ClipMerge)';
     const emailBody = body || 'Here is your final stitched video from ClipMerge.';
 
     // Attempt direct Gmail API if OAuth token is available
-    if (accessToken) {
+    if (token) {
       try {
         const rawMessage = [
           `To: ${recipient}`,
@@ -91,7 +138,7 @@ export class WorkspaceService {
         const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ raw: encodedMessage }),
@@ -101,7 +148,7 @@ export class WorkspaceService {
           return {
             success: true,
             method: 'api',
-            message: `Email sent successfully to ${recipient} via Gmail API!`,
+            message: `Email sent successfully to ${recipient || 'recipient'} via Gmail API!`,
           };
         }
       } catch (err) {
@@ -127,4 +174,3 @@ export class WorkspaceService {
     return date.toISOString().replace(/-|:|\.\d+/g, '');
   }
 }
-

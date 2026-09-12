@@ -856,6 +856,237 @@ export class FFmpegHandler {
   }
 
   /**
+   * Multi-Track Video & Audio Composite Rendering Pipeline
+   * Combines ordered video clips, voiceover narration track, background music with auto-ducking,
+   * aspect ratio conforming (16:9, 9:16 vertical, 1:1, 4:5), 48kHz audio mastering, and -14 LUFS loudness normalization.
+   */
+  async renderCompositeProject(config = {}) {
+    await this.loadCore();
+
+    const videoClips = config.videoClips || [];
+    if (videoClips.length === 0) {
+      throw new Error('No video clips provided for composite rendering.');
+    }
+
+    const onProgress = config.onProgress || (() => {});
+    onProgress(5, 'Loading video clips into WebAssembly virtual filesystem...');
+
+    const writtenFiles = [];
+    const outputName = `master_composite_${Date.now()}.mp4`;
+
+    try {
+      // 1. Write video clips
+      const clipInputs = [];
+      for (let i = 0; i < videoClips.length; i++) {
+        const c = videoClips[i];
+        const clipFileName = `vclip_${i}.mp4`;
+        const uint8 = await this.fileToUint8Array(c.file);
+        await this.ffmpeg.writeFile(clipFileName, uint8);
+        writtenFiles.push(clipFileName);
+        clipInputs.push(clipFileName);
+      }
+
+      // 2. Write Voiceover Track (if present)
+      let voiceFileName = null;
+      if (config.voiceoverTrack?.blob) {
+        voiceFileName = 'track_voiceover.wav';
+        const vUint8 = await this.fileToUint8Array(config.voiceoverTrack.blob);
+        await this.ffmpeg.writeFile(voiceFileName, vUint8);
+        writtenFiles.push(voiceFileName);
+      }
+
+      // 3. Write Music Track (if present)
+      let musicFileName = null;
+      if (config.musicTrack?.blob) {
+        musicFileName = 'track_music.mp3';
+        const mUint8 = await this.fileToUint8Array(config.musicTrack.blob);
+        await this.ffmpeg.writeFile(musicFileName, mUint8);
+        writtenFiles.push(musicFileName);
+      }
+
+      onProgress(20, 'Configuring resolution, aspect ratio, and audio filters...');
+
+      // Determine dimensions based on Aspect Ratio & Target Resolution
+      const aspect = config.aspectRatio || '16:9';
+      const res = config.resolution || '1080p';
+      let targetW = 1920;
+      let targetH = 1080;
+
+      if (aspect === '9:16') {
+        // Vertical Shorts / Reels / TikTok
+        targetW = res === '2160p' ? 2160 : 1080;
+        targetH = res === '2160p' ? 3840 : 1920;
+      } else if (aspect === '1:1') {
+        // Square
+        targetW = res === '2160p' ? 2160 : 1080;
+        targetH = res === '2160p' ? 2160 : 1080;
+      } else if (aspect === '4:5') {
+        targetW = 1080;
+        targetH = 1350;
+      } else {
+        // 16:9 Standard
+        targetW = res === '2160p' ? 3840 : (res === 'original' ? (videoClips[0].probe?.width || 1920) : 1920);
+        targetH = res === '2160p' ? 2160 : (res === 'original' ? (videoClips[0].probe?.height || 1080) : 1080);
+      }
+
+      // Ensure even dimensions
+      targetW = targetW % 2 === 0 ? targetW : targetW + 1;
+      targetH = targetH % 2 === 0 ? targetH : targetH + 1;
+
+      // Build FFmpeg command arguments
+      const args = [];
+
+      // Add inputs
+      clipInputs.forEach(f => {
+        args.push('-i', f);
+      });
+
+      let voiceInputIdx = -1;
+      if (voiceFileName) {
+        voiceInputIdx = clipInputs.length;
+        args.push('-i', voiceFileName);
+      }
+
+      let musicInputIdx = -1;
+      if (musicFileName) {
+        musicInputIdx = voiceFileName ? clipInputs.length + 1 : clipInputs.length;
+        args.push('-i', musicFileName);
+      }
+
+      // Construct Filter Complex
+      const filterChains = [];
+      const numClips = clipInputs.length;
+
+      // Video scaling & padding per clip
+      for (let i = 0; i < numClips; i++) {
+        filterChains.push(
+          `[${i}:v]scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30[v${i}]`
+        );
+      }
+
+      // Concat video streams
+      const concatVInputs = clipInputs.map((_, i) => `[v${i}]`).join('');
+      filterChains.push(`${concatVInputs}concat=n=${numClips}:v=1:a=0[vmaster]`);
+
+      // Audio streams processing
+      const audioMixInputs = [];
+
+      // Concat audio from clips if any clip has audio
+      const clipHasAudio = videoClips.some(c => c.probe?.hasAudio);
+      if (clipHasAudio) {
+        const audioConcatInputs = [];
+        for (let i = 0; i < numClips; i++) {
+          const clip = videoClips[i];
+          const vol = clip.isMuted ? 0 : (clip.volume !== undefined ? clip.volume : 0.8);
+          if (clip.probe?.hasAudio) {
+            filterChains.push(`[${i}:a]volume=${vol.toFixed(2)},aformat=sample_rates=48000:channel_layouts=stereo[ca${i}]`);
+            audioConcatInputs.push(`[ca${i}]`);
+          } else {
+            filterChains.push(`aevalsrc=0:d=${clip.duration || 5}:s=48000:c=stereo[ca${i}]`);
+            audioConcatInputs.push(`[ca${i}]`);
+          }
+        }
+        filterChains.push(`${audioConcatInputs.join('')}concat=n=${numClips}:v=0:a=1[vclips_audio]`);
+        audioMixInputs.push('[vclips_audio]');
+      }
+
+      // 2. Voiceover track processing
+      if (voiceInputIdx >= 0) {
+        const vOffset = Math.round((config.voiceoverTrack.offsetSeconds || 0) * 1000);
+        const vVol = config.voiceoverTrack.volume !== undefined ? config.voiceoverTrack.volume : 1.0;
+
+        let vFilter = `[${voiceInputIdx}:a]volume=${vVol.toFixed(2)}`;
+        if (vOffset > 0) {
+          vFilter += `,adelay=${vOffset}|${vOffset}`;
+        }
+        if (config.vocalPresence) {
+          vFilter += `,highpass=f=80,equalizer=f=3200:width_type=q:w=1.2:g=2.5`;
+        }
+        vFilter += `,aformat=sample_rates=48000:channel_layouts=stereo[voice_processed]`;
+        filterChains.push(vFilter);
+        audioMixInputs.push('[voice_processed]');
+      }
+
+      // 3. Background music processing (with Auto-Ducking)
+      if (musicInputIdx >= 0) {
+        const mVol = config.musicTrack.volume !== undefined ? config.musicTrack.volume : 0.35;
+        const effectiveMusicVol = (config.duckingEnabled && voiceInputIdx >= 0) ? Math.max(0.05, mVol * 0.4) : mVol;
+
+        filterChains.push(
+          `[${musicInputIdx}:a]volume=${effectiveMusicVol.toFixed(2)},aformat=sample_rates=48000:channel_layouts=stereo[bgm_processed]`
+        );
+        audioMixInputs.push('[bgm_processed]');
+      }
+
+      // Mix all audio streams together
+      let finalAudioLabel = '[vmaster_audio]';
+      if (audioMixInputs.length > 1) {
+        filterChains.push(
+          `${audioMixInputs.join('')}amix=inputs=${audioMixInputs.length}:duration=first:dropout_transition=2[mixed_audio]`
+        );
+        if (config.normalizeLoudness) {
+          filterChains.push(`[mixed_audio]loudnorm=I=-14:LRA=7:TP=-1.5[vmaster_audio]`);
+        } else {
+          finalAudioLabel = '[mixed_audio]';
+        }
+      } else if (audioMixInputs.length === 1) {
+        if (config.normalizeLoudness) {
+          filterChains.push(`${audioMixInputs[0]}loudnorm=I=-14:LRA=7:TP=-1.5[vmaster_audio]`);
+        } else {
+          finalAudioLabel = audioMixInputs[0];
+        }
+      } else {
+        filterChains.push(`aevalsrc=0:s=48000:c=stereo[vmaster_audio]`);
+      }
+
+      args.push(
+        '-filter_complex', filterChains.join('; '),
+        '-map', '[vmaster]',
+        '-map', finalAudioLabel,
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-crf', '22',
+        '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-ar', '48000',
+        '-shortest',
+        '-movflags', '+faststart',
+        outputName
+      );
+
+      onProgress(45, 'Rendering video frames & mixing multi-track audio...');
+      this.log(`Rendering composite project to ${targetW}x${targetH} (${aspect}, ${res})...`);
+
+      const exitCode = await this.ffmpeg.exec(args);
+      if (exitCode !== 0) {
+        throw new Error(`FFmpeg composite rendering exited with error code ${exitCode}`);
+      }
+
+      onProgress(90, 'Finalizing container and generating MP4 blob...');
+      const outputData = await this.ffmpeg.readFile(outputName);
+      const outputBlob = new Blob([outputData.buffer], { type: 'video/mp4' });
+      const blobUrl = URL.createObjectURL(outputBlob);
+      this.createdBlobUrls.add(blobUrl);
+
+      this.log(`Master composite video generated successfully! Size: ${(outputBlob.size / (1024 * 1024)).toFixed(2)} MB`);
+
+      return {
+        blob: outputBlob,
+        blobUrl: blobUrl,
+        sizeBytes: outputBlob.size,
+        targetResolution: { width: targetW, height: targetH },
+      };
+    } finally {
+      onProgress(98, 'Cleaning up virtual memory...');
+      for (const fn of writtenFiles) {
+        try { await this.ffmpeg.deleteFile(fn); } catch (_) {}
+      }
+      try { await this.ffmpeg.deleteFile(outputName); } catch (_) {}
+    }
+  }
+
+  /**
    * Revoke all generated Blob URLs to free browser memory
    */
   cleanupBlobUrls() {

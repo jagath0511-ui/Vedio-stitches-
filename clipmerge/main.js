@@ -7,7 +7,10 @@ import { GeminiService } from './gemini-service.js';
 import { FirebaseService } from './firebase-service.js';
 import { WorkspaceService } from './workspace-service.js';
 import { ImageEnhancer } from './image-enhancer.js';
-import { AudioStudio } from './audio-studio.js';
+import { AudioStudio, GOOGLE_VOICE_MODELS } from './audio-studio.js';
+import { SQLiteService } from './sqlite-service.js';
+import { AudioDSP } from './audio-dsp.js';
+import { VideoEditorStation } from './video-editor-station.js';
 
 // Initialize Services
 const ffmpegHandler = new FFmpegHandler();
@@ -15,6 +18,9 @@ const geminiService = new GeminiService();
 const firebaseService = new FirebaseService();
 const workspaceService = new WorkspaceService();
 const audioStudio = new AudioStudio(geminiService);
+const sqliteService = new SQLiteService();
+const audioDSP = new AudioDSP();
+const videoEditorStation = new VideoEditorStation({ ffmpegHandler, audioDSP });
 
 // Application State
 const state = {
@@ -31,6 +37,10 @@ const state = {
   aiMetadata: null,
   currentUser: null,
   googleAccessToken: null,
+  currentProjectId: null,
+  currentProjectName: 'Untitled Cut',
+  characters: [],
+  customVoices: [],
 };
 
 // DOM Elements: Core App States & Views
@@ -44,10 +54,12 @@ const tabStitchEdit = document.getElementById('tabStitchEdit');
 const tabVideoEnhance = document.getElementById('tabVideoEnhance');
 const tabImageEnhance = document.getElementById('tabImageEnhance');
 const tabAudioStudio = document.getElementById('tabAudioStudio');
+const tabVideoEditor = document.getElementById('tabVideoEditor');
 const viewStitchEdit = document.getElementById('viewStitchEdit');
 const viewVideoEnhance = document.getElementById('viewVideoEnhance');
 const viewImageEnhance = document.getElementById('viewImageEnhance');
 const viewAudioStudio = document.getElementById('viewAudioStudio');
+const viewVideoEditor = document.getElementById('viewVideoEditor');
 
 // Header & Authentication
 const btnGoogleAuth = document.getElementById('btnGoogleAuth');
@@ -200,6 +212,103 @@ const btnDownloadAudioTrack = document.getElementById('btnDownloadAudioTrack');
 const btnAttachToMergedVideo = document.getElementById('btnAttachToMergedVideo');
 const audioAttachResultStatus = document.getElementById('audioAttachResultStatus');
 
+// Audio Studio Sub-Navigation Tabs & Panels
+const btnSubTabNarration = document.getElementById('btnSubTabNarration');
+const btnSubTabCharacters = document.getElementById('btnSubTabCharacters');
+const btnSubTabMerger = document.getElementById('btnSubTabMerger');
+const btnSubTabLibrary = document.getElementById('btnSubTabLibrary');
+const subViewNarration = document.getElementById('subViewNarration');
+const subViewCharacters = document.getElementById('subViewCharacters');
+const subViewMerger = document.getElementById('subViewMerger');
+const subViewLibrary = document.getElementById('subViewLibrary');
+const characterCountBadge = document.getElementById('characterCountBadge');
+const totalVoiceCountBadge = document.getElementById('totalVoiceCountBadge');
+const btnQuickBrowseLibrary = document.getElementById('btnQuickBrowseLibrary');
+
+// Character Cast & Voice Studio Elements
+const charFilterAll = document.getElementById('charFilterAll');
+const charFilterMale = document.getElementById('charFilterMale');
+const charFilterFemale = document.getElementById('charFilterFemale');
+const charSearchInput = document.getElementById('charSearchInput');
+const btnOpenAddCharacterModal = document.getElementById('btnOpenAddCharacterModal');
+const charactersGrid = document.getElementById('charactersGrid');
+
+const characterModal = document.getElementById('characterModal');
+const modalCharacterTitle = document.getElementById('modalCharacterTitle');
+const btnCloseCharModal = document.getElementById('btnCloseCharModal');
+const btnCancelCharModal = document.getElementById('btnCancelCharModal');
+const btnSaveCharacter = document.getElementById('btnSaveCharacter');
+const charEditId = document.getElementById('charEditId');
+const charNameInput = document.getElementById('charNameInput');
+const charRoleInput = document.getElementById('charRoleInput');
+const charGenderMale = document.getElementById('charGenderMale');
+const charGenderFemale = document.getElementById('charGenderFemale');
+const charVoiceSelect = document.getElementById('charVoiceSelect');
+const btnAuditionSelectedCharVoice = document.getElementById('btnAuditionSelectedCharVoice');
+const labelCharPitch = document.getElementById('labelCharPitch');
+const charPitchSlider = document.getElementById('charPitchSlider');
+const labelCharRate = document.getElementById('labelCharRate');
+const charRateSlider = document.getElementById('charRateSlider');
+const charScriptInput = document.getElementById('charScriptInput');
+const charAvatarPreview = document.getElementById('charAvatarPreview');
+const charAvatarPlaceholder = document.getElementById('charAvatarPlaceholder');
+const charAvatarImg = document.getElementById('charAvatarImg');
+const btnTabAvatarPresets = document.getElementById('btnTabAvatarPresets');
+const btnTabAvatarUpload = document.getElementById('btnTabAvatarUpload');
+const presetAvatarsGrid = document.getElementById('presetAvatarsGrid');
+const avatarUploadContainer = document.getElementById('avatarUploadContainer');
+const charAvatarFileInput = document.getElementById('charAvatarFileInput');
+const btnTriggerAvatarUpload = document.getElementById('btnTriggerAvatarUpload');
+const charAvatarUrlInput = document.getElementById('charAvatarUrlInput');
+
+// Google Voice Merger Studio Elements
+const selectMergerVoiceA = document.getElementById('selectMergerVoiceA');
+const selectMergerVoiceB = document.getElementById('selectMergerVoiceB');
+const btnAuditionVoiceA = document.getElementById('btnAuditionVoiceA');
+const btnAuditionVoiceB = document.getElementById('btnAuditionVoiceB');
+const btnAuditionHybridVoice = document.getElementById('btnAuditionHybridVoice');
+const mergerRatioSlider = document.getElementById('mergerRatioSlider');
+const labelMergerRatioVal = document.getElementById('labelMergerRatioVal');
+const visualRatioA = document.getElementById('visualRatioA');
+const visualRatioB = document.getElementById('visualRatioB');
+const blendMeterFill = document.getElementById('blendMeterFill');
+const mergerPitchSlider = document.getElementById('mergerPitchSlider');
+const labelMergerPitch = document.getElementById('labelMergerPitch');
+const mergerRateSlider = document.getElementById('mergerRateSlider');
+const labelMergerRate = document.getElementById('labelMergerRate');
+const inputMergedVoiceName = document.getElementById('inputMergedVoiceName');
+const selectMergedVoiceGender = document.getElementById('selectMergedVoiceGender');
+const inputMergedVoiceDesc = document.getElementById('inputMergedVoiceDesc');
+const btnSaveHybridVoiceToLibrary = document.getElementById('btnSaveHybridVoiceToLibrary');
+const mergerSaveStatus = document.getElementById('mergerSaveStatus');
+const bubbleAName = document.getElementById('bubbleAName');
+const bubbleADesc = document.getElementById('bubbleADesc');
+const bubbleBName = document.getElementById('bubbleBName');
+const bubbleBDesc = document.getElementById('bubbleBDesc');
+
+// Searchable Google Voice Library Explorer Elements
+const libFilterAll = document.getElementById('libFilterAll');
+const libFilterMale = document.getElementById('libFilterMale');
+const libFilterFemale = document.getElementById('libFilterFemale');
+const countLibAll = document.getElementById('countLibAll');
+const countLibMale = document.getElementById('countLibMale');
+const countLibFemale = document.getElementById('countLibFemale');
+const libCategorySelect = document.getElementById('libCategorySelect');
+const libSearchInput = document.getElementById('libSearchInput');
+const voiceLibraryGrid = document.getElementById('voiceLibraryGrid');
+
+// Google Workspace Hub Modal Elements
+const workspaceModal = document.getElementById('workspaceModal');
+const btnCloseWorkspaceModal = document.getElementById('btnCloseWorkspaceModal');
+const btnCloseWorkspaceFooter = document.getElementById('btnCloseWorkspaceFooter');
+const workspaceAccountEmail = document.getElementById('workspaceAccountEmail');
+const workspaceAuthBadge = document.getElementById('workspaceAuthBadge');
+const workspaceAccountDesc = document.getElementById('workspaceAccountDesc');
+const btnWorkspaceSignIn = document.getElementById('btnWorkspaceSignIn');
+const btnWorkspaceSignOut = document.getElementById('btnWorkspaceSignOut');
+const btnHubOpenCalendar = document.getElementById('btnHubOpenCalendar');
+const btnHubOpenGmail = document.getElementById('btnHubOpenGmail');
+
 // Modals: Calendar, Gmail, Settings
 const calendarModal = document.getElementById('calendarModal');
 const btnCloseCalModal = document.getElementById('btnCloseCalModal');
@@ -223,6 +332,29 @@ const btnCancelSettings = document.getElementById('btnCancelSettings');
 const btnSaveSettings = document.getElementById('btnSaveSettings');
 const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
 const firebaseConfigInput = document.getElementById('firebaseConfigInput');
+
+// SQLite Backend & Projects Modal Elements
+const sqliteStatusBadge = document.getElementById('sqliteStatusBadge');
+const sqliteStatusText = document.getElementById('sqliteStatusText');
+const btnOpenProjectsModal = document.getElementById('btnOpenProjectsModal');
+const btnQuickSaveProject = document.getElementById('btnQuickSaveProject');
+const projectsModal = document.getElementById('projectsModal');
+const btnCloseProjectsModal = document.getElementById('btnCloseProjectsModal');
+const btnCloseProjectsModalFooter = document.getElementById('btnCloseProjectsModalFooter');
+const btnTabListProjects = document.getElementById('btnTabListProjects');
+const btnTabListRenders = document.getElementById('btnTabListRenders');
+const btnTabSaveCurrentProject = document.getElementById('btnTabSaveCurrentProject');
+const panelListProjects = document.getElementById('panelListProjects');
+const panelListRenders = document.getElementById('panelListRenders');
+const panelSaveCurrentProject = document.getElementById('panelSaveCurrentProject');
+const projectsListContainer = document.getElementById('projectsListContainer');
+const rendersListContainer = document.getElementById('rendersListContainer');
+const projectCountBadge = document.getElementById('projectCountBadge');
+const renderCountBadge = document.getElementById('renderCountBadge');
+const inputSaveProjectName = document.getElementById('inputSaveProjectName');
+const inputSaveProjectDesc = document.getElementById('inputSaveProjectDesc');
+const btnConfirmSaveProject = document.getElementById('btnConfirmSaveProject');
+const saveProjectStatusMsg = document.getElementById('saveProjectStatusMsg');
 
 // Video Resolution & Enhancement Panel
 const selectOutputResolution = document.getElementById('selectOutputResolution');
@@ -907,6 +1039,17 @@ async function startMergeProcess() {
     downloadBtn.href = result.blobUrl;
     downloadBtn.download = `clipmerge-result.mp4`;
 
+    // Record render event in SQLite database
+    sqliteService.logRender({
+      project_id: state.currentProjectId || '',
+      project_name: state.currentProjectName || 'Merged Cut',
+      output_filename: downloadBtn.download || 'clipmerge-result.mp4',
+      resolution: mergeOptions.resolution || 'original',
+      file_size_bytes: result.sizeBytes || 0,
+      duration_seconds: result.duration || 0,
+      has_voiceover: !!state.generatedAudioBlob
+    }).then(() => updateSQLiteStatusUI()).catch(e => console.warn('SQLite render log error:', e));
+
     // Generate AI Video Metadata (Title, Chapters, VTT)
     try {
       const script = scriptText.value.trim();
@@ -1192,8 +1335,8 @@ if (btnLoadMismatchDemo) {
 // ====================================================
 
 function switchAppView(viewId) {
-  [tabStitchEdit, tabVideoEnhance, tabImageEnhance, tabAudioStudio].forEach(t => t && t.classList.remove('active'));
-  [viewStitchEdit, viewVideoEnhance, viewImageEnhance, viewAudioStudio].forEach(v => v && v.classList.remove('active'));
+  [tabStitchEdit, tabVideoEnhance, tabImageEnhance, tabAudioStudio, tabVideoEditor].forEach(t => t && t.classList.remove('active'));
+  [viewStitchEdit, viewVideoEnhance, viewImageEnhance, viewAudioStudio, viewVideoEditor].forEach(v => v && v.classList.remove('active'));
 
   if (viewId === 'viewStitchEdit') {
     if (tabStitchEdit) tabStitchEdit.classList.add('active');
@@ -1209,6 +1352,21 @@ function switchAppView(viewId) {
     if (tabAudioStudio) tabAudioStudio.classList.add('active');
     if (viewAudioStudio) viewAudioStudio.classList.add('active');
     initAudioStudioVoicesUI();
+  } else if (viewId === 'viewVideoEditor') {
+    if (tabVideoEditor) tabVideoEditor.classList.add('active');
+    if (viewVideoEditor) viewVideoEditor.classList.add('active');
+
+    // Auto-sync clips and voiceover if not yet loaded
+    if (videoEditorStation.videoClips.length === 0 && state.clips.length > 0) {
+      videoEditorStation.importClipsFromVideoStation(state.clips);
+      const emptyOverlay = document.getElementById('editorEmptyOverlay');
+      if (emptyOverlay) emptyOverlay.style.display = 'none';
+    }
+    if (!videoEditorStation.voiceoverTrack && state.generatedAudioBlob) {
+      videoEditorStation.importVoiceoverTrack(state.generatedAudioBlob, 'AI Voiceover');
+    }
+    videoEditorStation.renderTimeline();
+    videoEditorStation.renderMixer();
   }
 }
 
@@ -1216,6 +1374,7 @@ if (tabStitchEdit) tabStitchEdit.addEventListener('click', () => switchAppView('
 if (tabVideoEnhance) tabVideoEnhance.addEventListener('click', () => switchAppView('viewVideoEnhance'));
 if (tabImageEnhance) tabImageEnhance.addEventListener('click', () => switchAppView('viewImageEnhance'));
 if (tabAudioStudio) tabAudioStudio.addEventListener('click', () => switchAppView('viewAudioStudio'));
+if (tabVideoEditor) tabVideoEditor.addEventListener('click', () => switchAppView('viewVideoEditor'));
 
 // ====================================================
 // EMBEDDED AI SCRIPT & SHOT DIRECTOR (IN EDITING PHASE)
@@ -1619,33 +1778,127 @@ if (btnSaveSettings) {
   });
 }
 
-// Google Auth Sign-In / User State
-if (btnGoogleAuth) {
-  btnGoogleAuth.addEventListener('click', async () => {
-    if (state.currentUser) {
-      const confirmSignOut = confirm(`Currently signed in as ${state.currentUser.displayName || state.currentUser.email}. Would you like to sign out?`);
-      if (confirmSignOut) {
-        await firebaseService.signOut();
-        state.currentUser = null;
-        state.googleAccessToken = null;
-        workspaceService.setAccessToken(null);
-        googleAuthText.textContent = 'Google Workspace';
-      }
-      return;
-    }
+// ====================================================
+// GOOGLE WORKSPACE HUB (CALENDAR, GMAIL & AUTH)
+// ====================================================
 
+function updateGoogleWorkspaceUI() {
+  const account = state.currentUser?.displayName || state.currentUser?.email || workspaceService.connectedAccount;
+  const isConnected = !!account;
+
+  if (googleAuthText) {
+    googleAuthText.textContent = isConnected ? account : 'Google Workspace';
+  }
+
+  if (workspaceAccountEmail) {
+    workspaceAccountEmail.textContent = isConnected ? `Connected: ${account}` : 'Not Signed In';
+  }
+
+  if (workspaceAuthBadge) {
+    if (state.googleAccessToken) {
+      workspaceAuthBadge.textContent = 'OAuth Direct API';
+      workspaceAuthBadge.className = 'badge-enhance-mode mode-upscale';
+    } else if (isConnected) {
+      workspaceAuthBadge.textContent = 'Account Linked';
+      workspaceAuthBadge.className = 'badge-enhance-mode';
+    } else {
+      workspaceAuthBadge.textContent = '1-Click Web Ready';
+      workspaceAuthBadge.className = 'badge-enhance-mode';
+    }
+  }
+
+  if (workspaceAccountDesc) {
+    workspaceAccountDesc.textContent = isConnected
+      ? `Signed in as ${account}. Google Calendar events and Gmail drafts are synced directly.`
+      : 'Connect your Google Workspace account for calendar releases and Gmail composition, or use instant 1-Click web intents.';
+  }
+
+  if (btnWorkspaceSignIn && btnWorkspaceSignOut) {
+    if (isConnected) {
+      btnWorkspaceSignIn.style.display = 'none';
+      btnWorkspaceSignOut.style.display = 'inline-flex';
+    } else {
+      btnWorkspaceSignIn.style.display = 'inline-flex';
+      btnWorkspaceSignOut.style.display = 'none';
+    }
+  }
+}
+
+// Open Workspace Hub Modal from header
+if (btnGoogleAuth) {
+  btnGoogleAuth.addEventListener('click', () => {
+    updateGoogleWorkspaceUI();
+    if (workspaceModal) workspaceModal.style.display = 'flex';
+  });
+}
+
+if (btnCloseWorkspaceModal) {
+  btnCloseWorkspaceModal.addEventListener('click', () => {
+    if (workspaceModal) workspaceModal.style.display = 'none';
+  });
+}
+if (btnCloseWorkspaceFooter) {
+  btnCloseWorkspaceFooter.addEventListener('click', () => {
+    if (workspaceModal) workspaceModal.style.display = 'none';
+  });
+}
+
+// Sign In via Workspace Hub
+if (btnWorkspaceSignIn) {
+  btnWorkspaceSignIn.addEventListener('click', async () => {
     try {
       const authResult = await firebaseService.signInWithGoogle();
       if (authResult && authResult.user) {
         state.currentUser = authResult.user;
         state.googleAccessToken = authResult.accessToken;
-        workspaceService.setAccessToken(authResult.accessToken);
-        googleAuthText.textContent = authResult.user.displayName || authResult.user.email || 'Connected';
-        alert(`Signed in as ${authResult.user.displayName || authResult.user.email}! Google Calendar and Gmail are connected.`);
+        workspaceService.setAccessToken(authResult.accessToken, authResult.user.email || authResult.user.displayName);
+        updateGoogleWorkspaceUI();
+        alert(`🎉 Signed in successfully as ${authResult.user.displayName || authResult.user.email}!\nGoogle Calendar & Gmail integrations are now active.`);
       }
     } catch (err) {
-      alert(`Google Sign-In failed: ${err.message}`);
+      alert(`Google Workspace sign-in note: ${err.message}\n(Web Intents remain 100% active for 1-click Calendar & Gmail!)`);
     }
+  });
+}
+
+// Sign Out via Workspace Hub
+if (btnWorkspaceSignOut) {
+  btnWorkspaceSignOut.addEventListener('click', async () => {
+    if (confirm('Disconnect Google Workspace account?')) {
+      await firebaseService.signOut();
+      state.currentUser = null;
+      state.googleAccessToken = null;
+      workspaceService.setAccessToken(null);
+      updateGoogleWorkspaceUI();
+    }
+  });
+}
+
+// Hub Shortcuts to Calendar & Gmail
+if (btnHubOpenCalendar) {
+  btnHubOpenCalendar.addEventListener('click', () => {
+    if (workspaceModal) workspaceModal.style.display = 'none';
+    if (calEventTitle) {
+      calEventTitle.value = state.aiMetadata?.title || `Video Release: ${state.currentProjectName || 'ClipMerge Production'}`;
+    }
+    if (calEventDesc) {
+      calEventDesc.value = `${scriptText ? scriptText.value : ''}\n\nStitched from ${state.clips.length} clips with ClipMerge.`;
+    }
+    if (calendarModal) calendarModal.style.display = 'flex';
+  });
+}
+
+if (btnHubOpenGmail) {
+  btnHubOpenGmail.addEventListener('click', () => {
+    if (workspaceModal) workspaceModal.style.display = 'none';
+    if (gmailSubject) {
+      gmailSubject.value = `Video Ready: ${state.aiMetadata?.title || state.currentProjectName || 'ClipMerge Production'}`;
+    }
+    if (gmailBody) {
+      const durationStr = state.mergedResult ? formatDuration(state.mergedResult.duration) : '0s';
+      gmailBody.value = `Hi team,\n\nThe stitched video production is completed!\n\nProject: ${state.currentProjectName}\nDuration: ${durationStr}\nClips: ${state.clips.length}\n\nSummary:\n${state.aiMetadata?.description || (scriptText ? scriptText.value.slice(0, 300) : '')}\n\nGenerated with ClipMerge AI Studio.`;
+    }
+    if (gmailModal) gmailModal.style.display = 'flex';
   });
 }
 
@@ -1653,12 +1906,330 @@ if (btnGoogleAuth) {
 firebaseService.onAuthStateChanged((user) => {
   if (user) {
     state.currentUser = user;
-    googleAuthText.textContent = user.displayName || user.email || 'Connected';
+    workspaceService.setAccessToken(workspaceService.getAccessToken(), user.email || user.displayName);
   } else {
     state.currentUser = null;
-    googleAuthText.textContent = 'Google Workspace';
   }
+  updateGoogleWorkspaceUI();
 });
+
+// ====================================================
+// SQLITE BACKEND & PROJECTS / RENDER HISTORY CONTROLLER
+// ====================================================
+
+async function updateSQLiteStatusUI() {
+  try {
+    const health = await sqliteService.checkHealth();
+    if (health.isConnected) {
+      if (sqliteStatusBadge) {
+        sqliteStatusBadge.className = 'sqlite-status-badge connected';
+        sqliteStatusBadge.title = 'SQLite Local Database Connected';
+      }
+      if (sqliteStatusText) sqliteStatusText.textContent = 'SQLite Active';
+      if (modalSqliteStatus) {
+        modalSqliteStatus.className = 'sqlite-status-badge connected';
+        modalSqliteStatus.innerHTML = '<span class="sqlite-dot"></span> SQLite Connected';
+      }
+
+      // Refresh counts
+      try {
+        const [projects, renders] = await Promise.all([
+          sqliteService.getProjects(),
+          sqliteService.getRenderHistory()
+        ]);
+        if (projectCountBadge) projectCountBadge.textContent = projects.length;
+        if (renderCountBadge) renderCountBadge.textContent = renders.length;
+      } catch (e) {
+        console.warn('SQLite counts fetch error:', e);
+      }
+    } else {
+      if (sqliteStatusBadge) {
+        sqliteStatusBadge.className = 'sqlite-status-badge';
+        sqliteStatusBadge.title = 'SQLite Local Backend Offline (Start serve.py to connect)';
+      }
+      if (sqliteStatusText) sqliteStatusText.textContent = 'SQLite Offline';
+      if (modalSqliteStatus) {
+        modalSqliteStatus.className = 'sqlite-status-badge';
+        modalSqliteStatus.innerHTML = '<span class="sqlite-dot"></span> SQLite Offline';
+      }
+    }
+  } catch (err) {
+    console.warn('SQLite status check failed:', err);
+  }
+}
+
+function switchProjectsModalTab(tab) {
+  if (btnTabListProjects) btnTabListProjects.className = tab === 'projects' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+  if (btnTabListRenders) btnTabListRenders.className = tab === 'renders' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+  if (btnTabSaveCurrentProject) btnTabSaveCurrentProject.className = tab === 'save' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+
+  if (panelListProjects) panelListProjects.style.display = tab === 'projects' ? 'block' : 'none';
+  if (panelListRenders) panelListRenders.style.display = tab === 'renders' ? 'block' : 'none';
+  if (panelSaveCurrentProject) panelSaveCurrentProject.style.display = tab === 'save' ? 'block' : 'none';
+
+  if (tab === 'projects') loadProjectsListUI();
+  if (tab === 'renders') loadRendersListUI();
+}
+
+if (btnTabListProjects) btnTabListProjects.addEventListener('click', () => switchProjectsModalTab('projects'));
+if (btnTabListRenders) btnTabListRenders.addEventListener('click', () => switchProjectsModalTab('renders'));
+if (btnTabSaveCurrentProject) btnTabSaveCurrentProject.addEventListener('click', () => switchProjectsModalTab('save'));
+
+async function loadProjectsListUI() {
+  if (!projectsListContainer) return;
+  projectsListContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading projects from SQLite...</div>';
+
+  try {
+    const projects = await sqliteService.getProjects();
+    if (projectCountBadge) projectCountBadge.textContent = projects.length;
+
+    if (!projects || projects.length === 0) {
+      projectsListContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
+          <p style="font-size: 1.05rem; margin-bottom: 0.5rem;">📁 No Saved Projects in SQLite Yet</p>
+          <p style="font-size: 0.85rem; margin-bottom: 1rem;">Save your current timeline, storyboard clips, and voiceover settings permanently.</p>
+          <button class="btn btn-sm btn-primary" id="btnGoToSaveTab">
+            💾 Save Current Timeline
+          </button>
+        </div>
+      `;
+      const btnGoTo = document.getElementById('btnGoToSaveTab');
+      if (btnGoTo) btnGoTo.addEventListener('click', () => switchProjectsModalTab('save'));
+      return;
+    }
+
+    projectsListContainer.innerHTML = '';
+    projects.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      const updatedDate = new Date(p.updated_at).toLocaleString();
+
+      card.innerHTML = `
+        <div>
+          <div class="project-card-title">${escapeHtml(p.name)}</div>
+          <div class="project-card-desc">${escapeHtml(p.description || 'No description entered.')}</div>
+          <div class="project-card-meta">
+            <span class="project-card-badge">🎬 ${p.clip_count} clips</span>
+            <span class="project-card-badge">✨ ${p.resolution ? p.resolution.toUpperCase() : 'ORIGINAL'}</span>
+            <span class="project-card-badge">🌐 ${escapeHtml(p.language || 'en-US')}</span>
+            <span style="opacity: 0.7; margin-left: auto;">${updatedDate}</span>
+          </div>
+        </div>
+        <div class="project-card-actions">
+          <button class="btn btn-xs btn-danger btn-delete-project" data-id="${p.id}" title="Delete project from SQLite">
+            🗑️ Delete
+          </button>
+          <button class="btn btn-xs btn-primary btn-load-project" data-id="${p.id}" title="Load project into editor">
+            📂 Load Project
+          </button>
+        </div>
+      `;
+
+      card.querySelector('.btn-delete-project').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (confirm(`Delete project "${p.name}" from SQLite?`)) {
+          await sqliteService.deleteProject(p.id);
+          loadProjectsListUI();
+          updateSQLiteStatusUI();
+        }
+      });
+
+      card.querySelector('.btn-load-project').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await loadProjectFromSQLite(p.id);
+      });
+
+      projectsListContainer.appendChild(card);
+    });
+  } catch (err) {
+    projectsListContainer.innerHTML = `<div style="grid-column: 1 / -1; color: var(--danger); text-align: center; padding: 1.5rem;">Error loading projects: ${err.message}</div>`;
+  }
+}
+
+async function loadRendersListUI() {
+  if (!rendersListContainer) return;
+  rendersListContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading export history from SQLite...</div>';
+
+  try {
+    const renders = await sqliteService.getRenderHistory();
+    if (renderCountBadge) renderCountBadge.textContent = renders.length;
+
+    if (!renders || renders.length === 0) {
+      rendersListContainer.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 2rem 1rem; border: 1px dashed var(--border-color); border-radius: var(--radius-md);">
+          <p style="font-size: 1rem; margin-bottom: 0.3rem;">🎬 No Video Exports Logged Yet</p>
+          <p style="font-size: 0.8rem;">Whenever you merge a video, its export details will be permanently archived here in SQLite.</p>
+        </div>
+      `;
+      return;
+    }
+
+    rendersListContainer.innerHTML = '';
+    renders.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'render-history-item';
+      const createdDate = new Date(r.created_at).toLocaleString();
+
+      item.innerHTML = `
+        <div class="render-item-info">
+          <div class="render-item-title">
+            📹 ${escapeHtml(r.output_filename)}
+            <span style="font-size: 0.7rem; background: var(--bg-tertiary); padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); margin-left: 0.4rem;">
+              ${r.resolution ? r.resolution.toUpperCase() : 'ORIGINAL'}
+            </span>
+            ${r.has_voiceover ? '<span style="font-size: 0.7rem; color: #34d399; margin-left: 0.3rem;">🎙️ Voiceover</span>' : ''}
+          </div>
+          <div class="render-item-meta">
+            Project: <strong>${escapeHtml(r.project_name || 'Merged Cut')}</strong> • 
+            Size: ${formatBytes(r.file_size_bytes)} • 
+            Duration: ${formatDuration(r.duration_seconds)} • 
+            ${createdDate}
+          </div>
+        </div>
+      `;
+      rendersListContainer.appendChild(item);
+    });
+  } catch (err) {
+    rendersListContainer.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 1.5rem;">Error loading render logs: ${err.message}</div>`;
+  }
+}
+
+async function loadProjectFromSQLite(projectId) {
+  try {
+    const project = await sqliteService.getProject(projectId);
+    if (!project) throw new Error('Project not found in SQLite.');
+
+    state.currentProjectId = project.id;
+    state.currentProjectName = project.name;
+
+    // Restore script text
+    if (project.script_text) {
+      if (scriptText) scriptText.value = project.script_text;
+      if (audioScriptInput) audioScriptInput.value = project.script_text;
+      if (typeof updateAudioScriptStats === 'function') updateAudioScriptStats();
+    }
+
+    // Restore language & voice settings
+    if (project.language && audioLangSelect) {
+      audioLangSelect.value = project.language;
+    }
+    if (project.voice_settings) {
+      const vs = project.voice_settings;
+      if (vs.pitch && audioPitchSlider) {
+        audioPitchSlider.value = vs.pitch;
+        if (labelAudioPitch) labelAudioPitch.textContent = `${parseFloat(vs.pitch).toFixed(2)}x`;
+      }
+      if (vs.rate && audioRateSlider) {
+        audioRateSlider.value = vs.rate;
+        if (labelAudioRate) labelAudioRate.textContent = `${parseFloat(vs.rate).toFixed(2)}x`;
+      }
+    }
+
+    // Restore resolution
+    if (project.resolution && selectOutputResolution) {
+      selectOutputResolution.value = project.resolution;
+      updateEnhanceResolutionBadge();
+    }
+
+    if (projectsModal) projectsModal.style.display = 'none';
+
+    alert(`🎉 Project "${project.name}" successfully loaded from SQLite!\n\n${project.clips ? project.clips.length : 0} storyboard clips & narration restored.`);
+    switchAppView('viewStitchEdit');
+  } catch (err) {
+    alert(`Failed to load project: ${err.message}`);
+  }
+}
+
+// Open / Close Projects Modal
+if (btnOpenProjectsModal) {
+  btnOpenProjectsModal.addEventListener('click', () => {
+    switchProjectsModalTab('projects');
+    if (projectsModal) projectsModal.style.display = 'flex';
+  });
+}
+
+if (btnQuickSaveProject) {
+  btnQuickSaveProject.addEventListener('click', () => {
+    if (inputSaveProjectName) {
+      inputSaveProjectName.value = state.currentProjectName || `Project Cut ${new Date().toLocaleDateString()}`;
+    }
+    switchProjectsModalTab('save');
+    if (projectsModal) projectsModal.style.display = 'flex';
+  });
+}
+
+if (btnCloseProjectsModal) {
+  btnCloseProjectsModal.addEventListener('click', () => {
+    if (projectsModal) projectsModal.style.display = 'none';
+  });
+}
+if (btnCloseProjectsModalFooter) {
+  btnCloseProjectsModalFooter.addEventListener('click', () => {
+    if (projectsModal) projectsModal.style.display = 'none';
+  });
+}
+
+// Commit Save Project to SQLite
+if (btnConfirmSaveProject) {
+  btnConfirmSaveProject.addEventListener('click', async () => {
+    const name = inputSaveProjectName ? inputSaveProjectName.value.trim() : '';
+    if (!name) {
+      alert('Please enter a project title.');
+      if (inputSaveProjectName) inputSaveProjectName.focus();
+      return;
+    }
+    const description = inputSaveProjectDesc ? inputSaveProjectDesc.value.trim() : '';
+
+    btnConfirmSaveProject.disabled = true;
+    if (saveProjectStatusMsg) {
+      saveProjectStatusMsg.style.display = 'block';
+      saveProjectStatusMsg.innerHTML = '<span style="color: var(--accent-primary);">💾 Saving project to SQLite...</span>';
+    }
+
+    try {
+      const payload = {
+        id: state.currentProjectId || undefined,
+        name: name,
+        description: description,
+        resolution: selectOutputResolution ? selectOutputResolution.value : 'original',
+        script_text: (audioScriptInput ? audioScriptInput.value : '') || (scriptText ? scriptText.value : ''),
+        language: audioLangSelect ? audioLangSelect.value : 'en-US',
+        voice_settings: {
+          pitch: audioPitchSlider ? parseFloat(audioPitchSlider.value) : 1.0,
+          rate: audioRateSlider ? parseFloat(audioRateSlider.value) : 1.0,
+        },
+        clips: state.clips.map((c, idx) => ({
+          name: c.file ? c.file.name : `Clip_${idx + 1}`,
+          duration: c.probe ? c.probe.duration : 0,
+          resolution: c.probe ? `${c.probe.width}x${c.probe.height}` : '',
+          shot_number: idx + 1,
+          order_index: idx,
+          prompt_text: (state.sceneMatchMap && state.sceneMatchMap[c.id] && state.sceneMatchMap[c.id].promptText) || ''
+        }))
+      };
+
+      const saved = await sqliteService.saveProject(payload);
+      state.currentProjectId = saved.id;
+      state.currentProjectName = saved.name;
+
+      if (saveProjectStatusMsg) {
+        saveProjectStatusMsg.innerHTML = '<span style="color: var(--success); font-weight: 600;">✅ Project saved to SQLite successfully!</span>';
+      }
+
+      await updateSQLiteStatusUI();
+      setTimeout(() => {
+        if (saveProjectStatusMsg) saveProjectStatusMsg.style.display = 'none';
+        switchProjectsModalTab('projects');
+      }, 700);
+    } catch (err) {
+      if (saveProjectStatusMsg) {
+        saveProjectStatusMsg.innerHTML = `<span style="color: var(--danger);">Error: ${err.message}</span>`;
+      }
+    } finally {
+      btnConfirmSaveProject.disabled = false;
+    }
+  });
+}
 
 // ====================================================
 // VIDEO RESOLUTION & IMAGE ENHANCEMENT LOGIC
@@ -2287,73 +2858,169 @@ if (btnDownloadStandaloneImage) {
 let availableBrowserVoices = [];
 let clonedCustomVoices = [];
 
-function initAudioStudioVoicesUI() {
-  if (!audioVoiceSelect) return;
-  const categorized = audioStudio.getVoices();
-  availableBrowserVoices = categorized.all || [];
+function populateVoiceSelectOptions(selectEl, { includeCustom = true, includeBrowser = false, defaultVal = '' } = {}) {
+  if (!selectEl) return;
+  const currentVal = selectEl.value || defaultVal;
+  selectEl.innerHTML = '';
 
-  audioVoiceSelect.innerHTML = '';
+  // 1. Custom / Hybrid Merged Voices group
+  if (includeCustom && state.customVoices && state.customVoices.length > 0) {
+    const hybridGroup = document.createElement('optgroup');
+    hybridGroup.label = '🧬 Custom & Hybrid Merged Voices';
+    state.customVoices.forEach(cv => {
+      const opt = document.createElement('option');
+      opt.value = cv.id;
+      const genderIcon = cv.gender === 'male' ? '👨' : '👩';
+      opt.textContent = `✨ ${cv.name} (${genderIcon} - ${cv.timbre || 'Hybrid'})`;
+      hybridGroup.appendChild(opt);
+    });
+    selectEl.appendChild(hybridGroup);
+  }
 
-  // Custom / Cloned / Hybrid Voices group
-  if (clonedCustomVoices.length > 0) {
+  // Cloned mic voices if any
+  if (includeCustom && clonedCustomVoices.length > 0) {
     const customGroup = document.createElement('optgroup');
-    customGroup.label = '🧬 Cloned & Hybrid Voices';
+    customGroup.label = '🎙️ Cloned Mic Samples';
     clonedCustomVoices.forEach((cv, idx) => {
       const opt = document.createElement('option');
       opt.value = `custom_${idx}`;
-      opt.textContent = `✨ ${cv.name} (${cv.timbre || 'Custom'})`;
+      opt.textContent = `🎙️ ${cv.name} (${cv.timbre || 'Cloned'})`;
       customGroup.appendChild(opt);
     });
-    audioVoiceSelect.appendChild(customGroup);
+    selectEl.appendChild(customGroup);
   }
 
-  // Telugu Voices group
-  const teluguGroup = document.createElement('optgroup');
-  teluguGroup.label = '🇮🇳 Telugu (తెలుగు) Voices';
-  if (categorized.telugu.length > 0) {
-    categorized.telugu.forEach((v) => {
+  // 2. Google Gemini 2.0 AI Multimodal Voices
+  const geminiModels = GOOGLE_VOICE_MODELS.filter(m => m.category === 'gemini');
+  if (geminiModels.length > 0) {
+    const geminiGroup = document.createElement('optgroup');
+    geminiGroup.label = '✨ Google Gemini 2.0 AI Multimodal Voices';
+    geminiModels.forEach(m => {
       const opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = `${v.name} (${v.lang})`;
-      teluguGroup.appendChild(opt);
+      opt.value = `google_${m.id}`;
+      const genderIcon = m.gender === 'male' ? '👨' : '👩';
+      opt.textContent = `${m.avatarBadge || '✨'} ${m.name} (${genderIcon} - ${m.timbre})`;
+      geminiGroup.appendChild(opt);
     });
-  } else {
-    const opt = document.createElement('option');
-    opt.value = 'default_telugu';
-    opt.textContent = 'Natural Telugu Mode (Gemini Spoken + Tone Pitch)';
-    teluguGroup.appendChild(opt);
+    selectEl.appendChild(geminiGroup);
   }
-  audioVoiceSelect.appendChild(teluguGroup);
 
-  // English Voices group
-  const englishGroup = document.createElement('optgroup');
-  englishGroup.label = '🌐 English Voices';
-  categorized.english.forEach((v) => {
-    const opt = document.createElement('option');
-    opt.value = v.name;
-    opt.textContent = `${v.name} (${v.lang})`;
-    if (v.lang === 'en-IN' || v.name.includes('India')) {
-      opt.textContent = `🇮🇳 ${v.name} (Indian Accent)`;
+  // 3. Google Cloud Journey & Studio Voices
+  const jsModels = GOOGLE_VOICE_MODELS.filter(m => m.category === 'journey' || m.category === 'studio');
+  if (jsModels.length > 0) {
+    const jsGroup = document.createElement('optgroup');
+    jsGroup.label = '🌟 Google Journey & Studio Voices';
+    jsModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = `google_${m.id}`;
+      const genderIcon = m.gender === 'male' ? '👨' : '👩';
+      opt.textContent = `${m.avatarBadge || '🌟'} ${m.name} (${genderIcon} - ${m.timbre})`;
+      jsGroup.appendChild(opt);
+    });
+    selectEl.appendChild(jsGroup);
+  }
+
+  // 4. Google Cloud Neural2 Voices
+  const n2Models = GOOGLE_VOICE_MODELS.filter(m => m.category === 'neural2');
+  if (n2Models.length > 0) {
+    const n2Group = document.createElement('optgroup');
+    n2Group.label = '⚡ Google Cloud Neural2 Voices';
+    n2Models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = `google_${m.id}`;
+      const genderIcon = m.gender === 'male' ? '👨' : '👩';
+      opt.textContent = `${m.avatarBadge || '⚡'} ${m.name} (${genderIcon} - ${m.timbre})`;
+      n2Group.appendChild(opt);
+    });
+    selectEl.appendChild(n2Group);
+  }
+
+  // 5. Google Telugu Models
+  const teModels = GOOGLE_VOICE_MODELS.filter(m => m.category === 'telugu');
+  if (teModels.length > 0) {
+    const teGroup = document.createElement('optgroup');
+    teGroup.label = '🌸 Google Telugu (తెలుగు) Models';
+    teModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = `google_${m.id}`;
+      const genderIcon = m.gender === 'male' ? '👨' : '👩';
+      opt.textContent = `${m.avatarBadge || '🌸'} ${m.name} (${genderIcon} - ${m.timbre})`;
+      teGroup.appendChild(opt);
+    });
+    selectEl.appendChild(teGroup);
+  }
+
+  // 6. Native Browser Voices (for Narration dropdown)
+  if (includeBrowser) {
+    const categorized = audioStudio.getVoices();
+    availableBrowserVoices = categorized.all || [];
+
+    if (categorized.telugu.length > 0) {
+      const teNativeGroup = document.createElement('optgroup');
+      teNativeGroup.label = '🇮🇳 Native Browser Telugu Voices';
+      categorized.telugu.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        teNativeGroup.appendChild(opt);
+      });
+      selectEl.appendChild(teNativeGroup);
     }
-    englishGroup.appendChild(opt);
-  });
-  audioVoiceSelect.appendChild(englishGroup);
 
-  // Other Voices group
-  const otherVoices = availableBrowserVoices.filter(v => 
-    !categorized.telugu.includes(v) && !categorized.english.includes(v)
-  );
-  if (otherVoices.length > 0) {
-    const otherGroup = document.createElement('optgroup');
-    otherGroup.label = '🌍 Other Voices';
-    otherVoices.slice(0, 15).forEach((v) => {
-      const opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = `${v.name} (${v.lang})`;
-      otherGroup.appendChild(opt);
-    });
-    audioVoiceSelect.appendChild(otherGroup);
+    if (categorized.english.length > 0) {
+      const enNativeGroup = document.createElement('optgroup');
+      enNativeGroup.label = '🌐 Native Browser English Voices';
+      categorized.english.slice(0, 15).forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        enNativeGroup.appendChild(opt);
+      });
+      selectEl.appendChild(enNativeGroup);
+    }
   }
+
+  // Preserve previous selection if available, else use default
+  if (currentVal && selectEl.querySelector(`option[value="${currentVal}"]`)) {
+    selectEl.value = currentVal;
+  } else if (defaultVal && selectEl.querySelector(`option[value="${defaultVal}"]`)) {
+    selectEl.value = defaultVal;
+  }
+}
+
+function resolveVoiceModel(val) {
+  if (!val) return null;
+  const cleanId = val.startsWith('google_') ? val.replace('google_', '') : val;
+  const googleModel = audioStudio.getGoogleVoiceById(cleanId);
+  if (googleModel) return googleModel;
+
+  const customVoice = state.customVoices.find(v => v.id === val || v.id === cleanId);
+  if (customVoice) return customVoice;
+
+  if (val.startsWith('custom_')) {
+    const idx = parseInt(val.replace('custom_', ''), 10);
+    return clonedCustomVoices[idx] || null;
+  }
+
+  const voices = audioStudio.voices || [];
+  const bv = voices.find(v => v.name === val);
+  if (bv) {
+    return { name: bv.name, language: bv.lang, gender: 'female', pitch: 1.0, rate: 1.0, timbre: 'Browser Voice' };
+  }
+
+  return null;
+}
+
+function initAllVoiceSelects() {
+  populateVoiceSelectOptions(audioVoiceSelect, { includeCustom: true, includeBrowser: true, defaultVal: 'google_gemini-lyra' });
+  populateVoiceSelectOptions(charVoiceSelect, { includeCustom: true, includeBrowser: false, defaultVal: 'google_gemini-puck' });
+  populateVoiceSelectOptions(selectMergerVoiceA, { includeCustom: true, includeBrowser: false, defaultVal: 'google_gemini-puck' });
+  populateVoiceSelectOptions(selectMergerVoiceB, { includeCustom: true, includeBrowser: false, defaultVal: 'google_gemini-lyra' });
+  updateMergerPreviewBubbles();
+}
+
+function initAudioStudioVoicesUI() {
+  initAllVoiceSelects();
 }
 
 // Update script character and time estimate
@@ -2475,6 +3142,10 @@ tonePresetButtons.forEach((btn) => {
         audioRateSlider.value = preset.rate;
         if (labelAudioRate) labelAudioRate.textContent = `${preset.rate.toFixed(2)}x`;
       }
+      if (presetKey === 'lyra' && audioVoiceSelect) {
+        const lyraOpt = audioVoiceSelect.querySelector('option[value="google_gemini-lyra"]');
+        if (lyraOpt) audioVoiceSelect.value = 'google_gemini-lyra';
+      }
     }
   });
 });
@@ -2502,8 +3173,37 @@ function getSelectedVoiceObject() {
     return clonedCustomVoices[idx] || null;
   }
 
+  const model = resolveVoiceModel(val);
+  if (model) {
+    const browserVoice = audioStudio.findBestBrowserVoiceForModel(model);
+    return browserVoice || { name: model.name, lang: model.language || 'en-US' };
+  }
+
   const voices = audioStudio.voices || [];
   return voices.find(v => v.name === val) || null;
+}
+
+if (audioVoiceSelect) {
+  audioVoiceSelect.addEventListener('change', () => {
+    const val = audioVoiceSelect.value;
+    const model = resolveVoiceModel(val);
+    if (model) {
+      if (audioPitchSlider) {
+        audioPitchSlider.value = model.pitch;
+        if (labelAudioPitch) labelAudioPitch.textContent = `${Number(model.pitch).toFixed(2)}x`;
+      }
+      if (audioRateSlider) {
+        audioRateSlider.value = model.rate;
+        if (labelAudioRate) labelAudioRate.textContent = `${Number(model.rate).toFixed(2)}x`;
+      }
+      if (val === 'google_gemini-lyra' || val === 'gemini-lyra') {
+        tonePresetButtons.forEach(b => {
+          if (b.dataset.preset === 'lyra') b.classList.add('active');
+          else b.classList.remove('active');
+        });
+      }
+    }
+  });
 }
 
 if (btnAuditionVoice) {
@@ -2596,6 +3296,11 @@ function loadMasterAudioTrack(file, sourceLabel = 'F5-TTS') {
   if (btnAttachToMergedVideo) {
     btnAttachToMergedVideo.disabled = false;
   }
+
+  const btnMasterAudioWithDSP = document.getElementById('btnMasterAudioWithDSP');
+  const btnSendVoiceToEditor = document.getElementById('btnSendVoiceToEditor');
+  if (btnMasterAudioWithDSP) btnMasterAudioWithDSP.style.display = 'inline-flex';
+  if (btnSendVoiceToEditor) btnSendVoiceToEditor.style.display = 'inline-flex';
 
   if (audioPlayerStatus) {
     audioPlayerStatus.innerHTML = `<span style="color: var(--success); font-weight: 600;">✅ ${sourceLabel} audio loaded (${(file.size / 1024).toFixed(1)} KB)! Ready to attach to video.</span>`;
@@ -2758,8 +3463,19 @@ if (btnSynthesizeMergedVoice) {
     const toneB = mergeVoiceB ? mergeVoiceB.value : 'energetic';
     const ratioA = mergeRatioSlider ? parseInt(mergeRatioSlider.value, 10) / 100 : 0.5;
 
-    const presetA = audioStudio.TONE_PRESETS[toneA] || { pitch: 1.0, rate: 1.0, label: toneA };
-    const presetB = audioStudio.TONE_PRESETS[toneB] || { pitch: 1.0, rate: 1.0, label: toneB };
+    let presetA = audioStudio.TONE_PRESETS[toneA];
+    if (!presetA && typeof audioStudio.getGoogleVoiceById === 'function') {
+      const model = audioStudio.getGoogleVoiceById(toneA);
+      if (model) presetA = { pitch: model.pitch, rate: model.rate, label: model.name };
+    }
+    if (!presetA) presetA = { pitch: 1.0, rate: 1.0, label: toneA };
+
+    let presetB = audioStudio.TONE_PRESETS[toneB];
+    if (!presetB && typeof audioStudio.getGoogleVoiceById === 'function') {
+      const model = audioStudio.getGoogleVoiceById(toneB);
+      if (model) presetB = { pitch: model.pitch, rate: model.rate, label: model.name };
+    }
+    if (!presetB) presetB = { pitch: 1.0, rate: 1.0, label: toneB };
 
     const hybrid = audioStudio.createMergedVoice(presetA, presetB, ratioA);
     clonedCustomVoices.push({
@@ -2837,6 +3553,11 @@ if (btnSynthesizeFullAudio) {
         btnAttachToMergedVideo.disabled = false;
       }
 
+      const btnMasterAudioWithDSP = document.getElementById('btnMasterAudioWithDSP');
+      const btnSendVoiceToEditor = document.getElementById('btnSendVoiceToEditor');
+      if (btnMasterAudioWithDSP) btnMasterAudioWithDSP.style.display = 'inline-flex';
+      if (btnSendVoiceToEditor) btnSendVoiceToEditor.style.display = 'inline-flex';
+
       if (audioPlayerStatus) {
         audioPlayerStatus.innerHTML = `<span style="color: var(--success); font-weight: 600;">✅ Voiceover ready! ${(wavBlob.size / 1024).toFixed(1)} KB rendered. Play below or attach to video.</span>`;
       }
@@ -2894,14 +3615,1331 @@ if (btnAttachToMergedVideo) {
   });
 }
 
-// Initialize Audio Studio voices on load
-setTimeout(() => {
-  initAudioStudioVoicesUI();
-}, 500);
+// ====================================================
+// AUDIO STUDIO SUB-NAVIGATION CONTROLLER
+// ====================================================
+function switchAudioSubTab(tabName) {
+  const tabs = [
+    { name: 'narration', btn: btnSubTabNarration, panel: subViewNarration },
+    { name: 'characters', btn: btnSubTabCharacters, panel: subViewCharacters },
+    { name: 'merger', btn: btnSubTabMerger, panel: subViewMerger },
+    { name: 'library', btn: btnSubTabLibrary, panel: subViewLibrary },
+  ];
+
+  tabs.forEach(t => {
+    const isActive = t.name === tabName;
+    if (t.btn) {
+      if (isActive) t.btn.classList.add('active');
+      else t.btn.classList.remove('active');
+    }
+    if (t.panel) {
+      t.panel.style.display = isActive ? 'block' : 'none';
+    }
+  });
+
+  if (tabName === 'characters') {
+    renderCharactersUI();
+  } else if (tabName === 'merger') {
+    updateMergerPreviewBubbles();
+  } else if (tabName === 'library') {
+    renderVoiceLibraryUI();
+  }
+}
+
+if (btnSubTabNarration) btnSubTabNarration.addEventListener('click', () => switchAudioSubTab('narration'));
+if (btnSubTabCharacters) btnSubTabCharacters.addEventListener('click', () => switchAudioSubTab('characters'));
+if (btnSubTabMerger) btnSubTabMerger.addEventListener('click', () => switchAudioSubTab('merger'));
+if (btnSubTabLibrary) btnSubTabLibrary.addEventListener('click', () => switchAudioSubTab('library'));
+if (btnQuickBrowseLibrary) btnQuickBrowseLibrary.addEventListener('click', () => switchAudioSubTab('library'));
+
+// ====================================================
+// CHARACTER CAST & VOICE STUDIO CONTROLLER
+// ====================================================
+const AVATAR_PRESETS = [
+  { id: 'hero', name: 'Hero', emoji: '🦸‍♂️', bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', gender: 'male' },
+  { id: 'detective', name: 'Detective', emoji: '🕵️‍♀️', bg: 'linear-gradient(135deg, #6366f1, #4338ca)', gender: 'female' },
+  { id: 'elder', name: 'Elder', emoji: '🧙‍♂️', bg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', gender: 'male' },
+  { id: 'hacker', name: 'Cyber Hacker', emoji: '👩‍💻', bg: 'linear-gradient(135deg, #10b981, #047857)', gender: 'female' },
+  { id: 'queen', name: 'Queen', emoji: '👑', bg: 'linear-gradient(135deg, #ec4899, #be185d)', gender: 'female' },
+  { id: 'explorer', name: 'Explorer', emoji: '🧭', bg: 'linear-gradient(135deg, #f59e0b, #b45309)', gender: 'male' },
+  { id: 'robot', name: 'Android', emoji: '🤖', bg: 'linear-gradient(135deg, #06b6d4, #0e7490)', gender: 'male' },
+  { id: 'anchor', name: 'News Anchor', emoji: '🎙️', bg: 'linear-gradient(135deg, #3b82f6, #1e40af)', gender: 'female' },
+  { id: 'creator', name: 'Tech Creator', emoji: '⚡', bg: 'linear-gradient(135deg, #f97316, #c2410c)', gender: 'male' },
+  { id: 'storyteller', name: 'Storyteller', emoji: '📖', bg: 'linear-gradient(135deg, #a855f7, #7e22ce)', gender: 'female' },
+  { id: 'telugu_hero', name: 'Telugu Hero', emoji: '🦁', bg: 'linear-gradient(135deg, #ef4444, #b91c1c)', gender: 'male' },
+  { id: 'telugu_host', name: 'Telugu Hostess', emoji: '🌺', bg: 'linear-gradient(135deg, #f43f5e, #be123c)', gender: 'female' },
+];
+
+let selectedAvatarType = 'preset';
+let selectedAvatarPresetId = 'hero';
+let uploadedAvatarDataUrl = '';
+let activeCharGenderFilter = 'all';
+
+function renderPresetAvatarsGrid() {
+  if (!presetAvatarsGrid) return;
+  presetAvatarsGrid.innerHTML = '';
+  AVATAR_PRESETS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = `preset-avatar-chip ${selectedAvatarPresetId === p.id && selectedAvatarType === 'preset' ? 'active' : ''}`;
+    div.style.background = p.bg;
+    div.title = `${p.name} (${p.gender})`;
+    div.innerHTML = `<span>${p.emoji}</span>`;
+    div.addEventListener('click', () => {
+      selectedAvatarType = 'preset';
+      selectedAvatarPresetId = p.id;
+      uploadedAvatarDataUrl = '';
+      document.querySelectorAll('.preset-avatar-chip').forEach(c => c.classList.remove('active'));
+      div.classList.add('active');
+      updateAvatarPreviewDisplay();
+    });
+    presetAvatarsGrid.appendChild(div);
+  });
+}
+
+function updateAvatarPreviewDisplay() {
+  if (!charAvatarPreview) return;
+  if (selectedAvatarType === 'upload' && uploadedAvatarDataUrl) {
+    if (charAvatarImg) {
+      charAvatarImg.src = uploadedAvatarDataUrl;
+      charAvatarImg.style.display = 'block';
+    }
+    if (charAvatarPlaceholder) charAvatarPlaceholder.style.display = 'none';
+    charAvatarPreview.style.background = 'var(--bg-tertiary)';
+  } else {
+    const preset = AVATAR_PRESETS.find(p => p.id === selectedAvatarPresetId) || AVATAR_PRESETS[0];
+    if (charAvatarImg) charAvatarImg.style.display = 'none';
+    if (charAvatarPlaceholder) {
+      charAvatarPlaceholder.style.display = 'block';
+      charAvatarPlaceholder.textContent = preset.emoji;
+    }
+    charAvatarPreview.style.background = preset.bg;
+  }
+}
+
+if (btnTabAvatarPresets) {
+  btnTabAvatarPresets.addEventListener('click', () => {
+    btnTabAvatarPresets.className = 'btn btn-xs btn-primary';
+    if (btnTabAvatarUpload) btnTabAvatarUpload.className = 'btn btn-xs btn-secondary';
+    if (presetAvatarsGrid) presetAvatarsGrid.style.display = 'grid';
+    if (avatarUploadContainer) avatarUploadContainer.style.display = 'none';
+  });
+}
+
+if (btnTabAvatarUpload) {
+  btnTabAvatarUpload.addEventListener('click', () => {
+    btnTabAvatarUpload.className = 'btn btn-xs btn-primary';
+    if (btnTabAvatarPresets) btnTabAvatarPresets.className = 'btn btn-xs btn-secondary';
+    if (presetAvatarsGrid) presetAvatarsGrid.style.display = 'none';
+    if (avatarUploadContainer) avatarUploadContainer.style.display = 'block';
+  });
+}
+
+if (btnTriggerAvatarUpload && charAvatarFileInput) {
+  btnTriggerAvatarUpload.addEventListener('click', () => {
+    charAvatarFileInput.click();
+  });
+  charAvatarFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        uploadedAvatarDataUrl = evt.target.result;
+        selectedAvatarType = 'upload';
+        updateAvatarPreviewDisplay();
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+if (charAvatarUrlInput) {
+  charAvatarUrlInput.addEventListener('input', () => {
+    const url = charAvatarUrlInput.value.trim();
+    if (url) {
+      uploadedAvatarDataUrl = url;
+      selectedAvatarType = 'upload';
+      updateAvatarPreviewDisplay();
+    }
+  });
+}
+
+function updateCharSlidersFromVoice(voiceVal) {
+  const model = resolveVoiceModel(voiceVal);
+  if (model) {
+    if (charPitchSlider && labelCharPitch) {
+      charPitchSlider.value = model.pitch || 1.0;
+      labelCharPitch.textContent = `${Number(model.pitch || 1.0).toFixed(2)}x`;
+    }
+    if (charRateSlider && labelCharRate) {
+      charRateSlider.value = model.rate || 1.0;
+      labelCharRate.textContent = `${Number(model.rate || 1.0).toFixed(2)}x`;
+    }
+  }
+}
+
+if (charVoiceSelect) {
+  charVoiceSelect.addEventListener('change', () => {
+    updateCharSlidersFromVoice(charVoiceSelect.value);
+  });
+}
+
+if (charGenderMale) {
+  charGenderMale.addEventListener('change', () => {
+    if (charGenderMale.checked && charVoiceSelect) {
+      const current = charVoiceSelect.value;
+      const model = resolveVoiceModel(current);
+      if (!model || model.gender === 'female') {
+        charVoiceSelect.value = 'google_gemini-puck';
+        updateCharSlidersFromVoice('google_gemini-puck');
+      }
+    }
+  });
+}
+
+if (charGenderFemale) {
+  charGenderFemale.addEventListener('change', () => {
+    if (charGenderFemale.checked && charVoiceSelect) {
+      const current = charVoiceSelect.value;
+      const model = resolveVoiceModel(current);
+      if (!model || model.gender === 'male') {
+        charVoiceSelect.value = 'google_gemini-lyra';
+        updateCharSlidersFromVoice('google_gemini-lyra');
+      }
+    }
+  });
+}
+
+if (charPitchSlider && labelCharPitch) {
+  charPitchSlider.addEventListener('input', () => {
+    labelCharPitch.textContent = `${parseFloat(charPitchSlider.value).toFixed(2)}x`;
+  });
+}
+
+if (charRateSlider && labelCharRate) {
+  charRateSlider.addEventListener('input', () => {
+    labelCharRate.textContent = `${parseFloat(charRateSlider.value).toFixed(2)}x`;
+  });
+}
+
+if (btnAuditionSelectedCharVoice) {
+  btnAuditionSelectedCharVoice.addEventListener('click', () => {
+    const text = (charScriptInput && charScriptInput.value.trim()) || `Hello, my name is ${charNameInput?.value.trim() || 'this character'}. I am ready for action in your video production.`;
+    const voiceVal = charVoiceSelect ? charVoiceSelect.value : 'google_gemini-lyra';
+    const pitch = charPitchSlider ? parseFloat(charPitchSlider.value) : 1.0;
+    const rate = charRateSlider ? parseFloat(charRateSlider.value) : 1.0;
+
+    const model = resolveVoiceModel(voiceVal);
+    btnAuditionSelectedCharVoice.disabled = true;
+    btnAuditionSelectedCharVoice.textContent = '🔊 Speaking...';
+
+    audioStudio.speakVoiceModel(text, model || voiceVal, {
+      pitch,
+      rate,
+      onEnd: () => {
+        btnAuditionSelectedCharVoice.disabled = false;
+        btnAuditionSelectedCharVoice.textContent = '▶️ Audition Voice';
+      },
+      onError: () => {
+        btnAuditionSelectedCharVoice.disabled = false;
+        btnAuditionSelectedCharVoice.textContent = '▶️ Audition Voice';
+      }
+    });
+  });
+}
+
+function setupCharacterFilters() {
+  const pills = [
+    { btn: charFilterAll, gender: 'all' },
+    { btn: charFilterMale, gender: 'male' },
+    { btn: charFilterFemale, gender: 'female' },
+  ];
+
+  pills.forEach(p => {
+    if (p.btn) {
+      p.btn.addEventListener('click', () => {
+        activeCharGenderFilter = p.gender;
+        pills.forEach(x => {
+          if (x.btn) x.btn.classList.toggle('active', x.gender === p.gender);
+        });
+        renderCharactersUI();
+      });
+    }
+  });
+
+  if (charSearchInput) {
+    charSearchInput.addEventListener('input', () => {
+      renderCharactersUI();
+    });
+  }
+}
+
+function renderCharactersUI() {
+  if (!charactersGrid) return;
+  const q = charSearchInput ? charSearchInput.value.trim().toLowerCase() : '';
+
+  let list = [...state.characters];
+
+  // Gender filter
+  if (activeCharGenderFilter !== 'all') {
+    list = list.filter(c => (c.gender || 'male').toLowerCase() === activeCharGenderFilter);
+  }
+
+  // Search filter
+  if (q) {
+    list = list.filter(c => 
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.role || '').toLowerCase().includes(q) ||
+      (c.script_text || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (characterCountBadge) characterCountBadge.textContent = state.characters.length;
+
+  if (list.length === 0) {
+    charactersGrid.innerHTML = `
+      <div class="empty-characters-box">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎭</div>
+        <h4>No Characters Found</h4>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; max-width: 380px; margin: 0 auto 1rem;">
+          ${q ? 'No characters match your search filter. Try clearing your search.' : 'Create character personalities with specific Google voices, custom avatars, and dialogue lines.'}
+        </p>
+        <button type="button" class="btn btn-primary btn-sm" id="btnEmptyAddChar">
+          ➕ Create Character
+        </button>
+      </div>
+    `;
+    const btnEmptyAddChar = document.getElementById('btnEmptyAddChar');
+    if (btnEmptyAddChar) btnEmptyAddChar.addEventListener('click', () => openCharacterModal());
+    return;
+  }
+
+  charactersGrid.innerHTML = '';
+  list.forEach(char => {
+    const card = document.createElement('div');
+    card.className = 'character-card';
+
+    const voiceModel = resolveVoiceModel(char.voice_id);
+    const voiceName = voiceModel ? voiceModel.name : (char.voice_id || 'Gemini AI Voice');
+    const voiceTimbre = voiceModel ? voiceModel.timbre : 'Expressive';
+    const voiceBadge = voiceModel?.avatarBadge || '✨';
+
+    let avatarHtml = '';
+    if (char.avatar_url) {
+      avatarHtml = `<img src="${escapeHtml(char.avatar_url)}" alt="${escapeHtml(char.name)}" class="char-card-avatar-img">`;
+    } else {
+      const preset = AVATAR_PRESETS.find(p => p.id === char.avatar_preset) || AVATAR_PRESETS[0];
+      avatarHtml = `<div class="char-card-avatar-preset" style="background: ${preset.bg};">${preset.emoji}</div>`;
+    }
+
+    const isMale = (char.gender || 'male').toLowerCase() === 'male';
+    const genderClass = isMale ? 'pill-male' : 'pill-female';
+    const genderLabel = isMale ? '👨 Male' : '👩 Female';
+    const pitch = char.voice_settings?.pitch || 1.0;
+    const rate = char.voice_settings?.rate || 1.0;
+
+    card.innerHTML = `
+      <div class="char-card-header">
+        ${avatarHtml}
+        <div class="char-card-info">
+          <div class="char-card-title-row">
+            <h4 class="char-card-name">${escapeHtml(char.name)}</h4>
+            <span class="gender-pill ${genderClass} gender-pill-sm">${genderLabel}</span>
+          </div>
+          <div class="char-card-role">${escapeHtml(char.role || 'Production Character')}</div>
+        </div>
+      </div>
+
+      <div class="char-card-voice-badge">
+        <span style="font-size: 1rem;">${voiceBadge}</span>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtml(voiceName)}
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-secondary);">
+            ${escapeHtml(voiceTimbre)} • Pitch: ${Number(pitch).toFixed(2)}x, Speed: ${Number(rate).toFixed(2)}x
+          </div>
+        </div>
+      </div>
+
+      <div class="char-card-script-box">
+        <div class="char-script-tag">Dialogue Script</div>
+        <p class="char-script-text">${escapeHtml(char.script_text || 'No dialogue script added yet. Click edit to write lines.')}</p>
+      </div>
+
+      <div class="char-card-actions">
+        <button type="button" class="btn btn-xs btn-primary btn-char-speak" data-id="${char.id}" title="Audition Dialogue">
+          🔊 Audition
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-char-export-wav" data-id="${char.id}" title="Export dialogue audio track (WAV)">
+          ⬇️ Export Audio
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-char-insert-script" data-id="${char.id}" title="Append dialogue to video script">
+          ➕ Add to Script
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-char-edit" data-id="${char.id}" title="Edit character">
+          ✏️ Edit
+        </button>
+        <button type="button" class="btn btn-xs btn-danger btn-char-delete" data-id="${char.id}" title="Delete character">
+          🗑️
+        </button>
+      </div>
+    `;
+
+    charactersGrid.appendChild(card);
+  });
+
+  attachCharacterCardListeners();
+}
+
+function attachCharacterCardListeners() {
+  document.querySelectorAll('.btn-char-speak').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      const char = state.characters.find(c => c.id === id);
+      if (!char) return;
+      const text = char.script_text || `Hi, I am ${char.name}.`;
+      const model = resolveVoiceModel(char.voice_id);
+      const pitch = char.voice_settings?.pitch || 1.0;
+      const rate = char.voice_settings?.rate || 1.0;
+
+      btn.disabled = true;
+      const origText = btn.innerHTML;
+      btn.innerHTML = '🔊 Speaking...';
+
+      audioStudio.speakVoiceModel(text, model || char.voice_id, {
+        pitch,
+        rate,
+        onEnd: () => {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        },
+        onError: () => {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.btn-char-export-wav').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.dataset.id;
+      const char = state.characters.find(c => c.id === id);
+      if (!char) return;
+      const text = char.script_text || `Hello, this is ${char.name}.`;
+      const model = resolveVoiceModel(char.voice_id);
+      const pitch = char.voice_settings?.pitch || 1.0;
+      const rate = char.voice_settings?.rate || 1.0;
+
+      btn.disabled = true;
+      const origText = btn.innerHTML;
+      btn.innerHTML = '⏳ Rendering...';
+
+      try {
+        const wavBlob = await audioStudio.recordSpeechToWavBlob(text, {
+          voice: model ? audioStudio.findBestBrowserVoiceForModel(model) : undefined,
+          lang: model?.language || 'en-US',
+          pitch,
+          rate,
+        });
+
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${char.name.toLowerCase().replace(/\s+/g, '_')}_dialogue.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert(`Export failed: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-char-insert-script').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      const char = state.characters.find(c => c.id === id);
+      if (!char) return;
+      const line = `[${char.name}]: ${char.script_text || ''}\n\n`;
+      if (audioScriptInput) {
+        audioScriptInput.value += (audioScriptInput.value ? '\n' : '') + line;
+        updateAudioScriptStats();
+      }
+      if (scriptText) {
+        scriptText.value += (scriptText.value ? '\n' : '') + line;
+      }
+      alert(`Added ${char.name}'s lines to Master Script!`);
+    });
+  });
+
+  document.querySelectorAll('.btn-char-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      openCharacterModal(id);
+    });
+  });
+
+  document.querySelectorAll('.btn-char-delete').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.dataset.id;
+      const char = state.characters.find(c => c.id === id);
+      if (!char) return;
+      if (confirm(`Delete character "${char.name}"?`)) {
+        state.characters = state.characters.filter(c => c.id !== id);
+        localStorage.setItem('clipmerge_characters', JSON.stringify(state.characters));
+        try {
+          await sqliteService.deleteCharacter(id);
+        } catch (err) {
+          console.warn('SQLite delete character error:', err);
+        }
+        renderCharactersUI();
+      }
+    });
+  });
+}
+
+function openCharacterModal(charId = null) {
+  renderPresetAvatarsGrid();
+  if (charId) {
+    const char = state.characters.find(c => c.id === charId);
+    if (!char) return;
+    if (modalCharacterTitle) modalCharacterTitle.textContent = `✏️ Edit Character: ${char.name}`;
+    if (charEditId) charEditId.value = char.id;
+    if (charNameInput) charNameInput.value = char.name;
+    if (charRoleInput) charRoleInput.value = char.role || '';
+    if (char.gender === 'female') {
+      if (charGenderFemale) charGenderFemale.checked = true;
+    } else {
+      if (charGenderMale) charGenderMale.checked = true;
+    }
+    if (charVoiceSelect && char.voice_id) charVoiceSelect.value = char.voice_id;
+    if (charPitchSlider) {
+      charPitchSlider.value = char.voice_settings?.pitch || 1.0;
+      if (labelCharPitch) labelCharPitch.textContent = `${Number(charPitchSlider.value).toFixed(2)}x`;
+    }
+    if (charRateSlider) {
+      charRateSlider.value = char.voice_settings?.rate || 1.0;
+      if (labelCharRate) labelCharRate.textContent = `${Number(charRateSlider.value).toFixed(2)}x`;
+    }
+    if (charScriptInput) charScriptInput.value = char.script_text || '';
+
+    if (char.avatar_url) {
+      selectedAvatarType = 'upload';
+      uploadedAvatarDataUrl = char.avatar_url;
+      if (charAvatarUrlInput) charAvatarUrlInput.value = char.avatar_url;
+      if (btnTabAvatarUpload) btnTabAvatarUpload.click();
+    } else {
+      selectedAvatarType = 'preset';
+      selectedAvatarPresetId = char.avatar_preset || 'hero';
+      if (btnTabAvatarPresets) btnTabAvatarPresets.click();
+    }
+    updateAvatarPreviewDisplay();
+  } else {
+    if (modalCharacterTitle) modalCharacterTitle.textContent = '👤 Add New Character';
+    if (charEditId) charEditId.value = '';
+    if (charNameInput) charNameInput.value = '';
+    if (charRoleInput) charRoleInput.value = '';
+    if (charGenderMale) charGenderMale.checked = true;
+    if (charVoiceSelect) charVoiceSelect.value = 'google_gemini-puck';
+    if (charPitchSlider) {
+      charPitchSlider.value = 1.0;
+      if (labelCharPitch) labelCharPitch.textContent = '1.00x';
+    }
+    if (charRateSlider) {
+      charRateSlider.value = 1.0;
+      if (labelCharRate) labelCharRate.textContent = '1.00x';
+    }
+    if (charScriptInput) charScriptInput.value = '';
+    selectedAvatarType = 'preset';
+    selectedAvatarPresetId = 'hero';
+    uploadedAvatarDataUrl = '';
+    if (charAvatarUrlInput) charAvatarUrlInput.value = '';
+    if (btnTabAvatarPresets) btnTabAvatarPresets.click();
+    updateAvatarPreviewDisplay();
+  }
+
+  if (characterModal) characterModal.style.display = 'flex';
+}
+
+if (btnOpenAddCharacterModal) {
+  btnOpenAddCharacterModal.addEventListener('click', () => openCharacterModal());
+}
+if (btnCloseCharModal) {
+  btnCloseCharModal.addEventListener('click', () => {
+    if (characterModal) characterModal.style.display = 'none';
+  });
+}
+if (btnCancelCharModal) {
+  btnCancelCharModal.addEventListener('click', () => {
+    if (characterModal) characterModal.style.display = 'none';
+  });
+}
+
+if (btnSaveCharacter) {
+  btnSaveCharacter.addEventListener('click', async () => {
+    const name = charNameInput ? charNameInput.value.trim() : '';
+    if (!name) {
+      alert('Please enter a character name.');
+      if (charNameInput) charNameInput.focus();
+      return;
+    }
+
+    const editId = charEditId ? charEditId.value : '';
+    const id = editId || `char_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const gender = (charGenderFemale && charGenderFemale.checked) ? 'female' : 'male';
+    const role = charRoleInput ? charRoleInput.value.trim() : '';
+    const voiceId = charVoiceSelect ? charVoiceSelect.value : 'google_gemini-lyra';
+    const pitch = charPitchSlider ? parseFloat(charPitchSlider.value) : 1.0;
+    const rate = charRateSlider ? parseFloat(charRateSlider.value) : 1.0;
+    const script = charScriptInput ? charScriptInput.value.trim() : '';
+
+    const charData = {
+      id,
+      name,
+      role,
+      gender,
+      voice_id: voiceId,
+      voice_settings: { pitch, rate },
+      script_text: script,
+      avatar_preset: selectedAvatarType === 'preset' ? selectedAvatarPresetId : '',
+      avatar_url: selectedAvatarType === 'upload' ? uploadedAvatarDataUrl : '',
+    };
+
+    const existingIdx = state.characters.findIndex(c => c.id === id);
+    if (existingIdx >= 0) {
+      state.characters[existingIdx] = charData;
+    } else {
+      state.characters.unshift(charData);
+    }
+
+    localStorage.setItem('clipmerge_characters', JSON.stringify(state.characters));
+
+    try {
+      await sqliteService.saveCharacter(charData);
+    } catch (err) {
+      console.warn('SQLite character save warning:', err);
+    }
+
+    if (characterModal) characterModal.style.display = 'none';
+    renderCharactersUI();
+  });
+}
+
+// ====================================================
+// GOOGLE VOICE MERGER STUDIO CONTROLLER
+// ====================================================
+function updateMergerPreviewBubbles() {
+  const valA = selectMergerVoiceA ? selectMergerVoiceA.value : 'google_gemini-puck';
+  const valB = selectMergerVoiceB ? selectMergerVoiceB.value : 'google_gemini-lyra';
+
+  const modelA = resolveVoiceModel(valA);
+  const modelB = resolveVoiceModel(valB);
+
+  if (bubbleAName) bubbleAName.textContent = modelA ? modelA.name : valA;
+  if (bubbleADesc) bubbleADesc.textContent = modelA ? `${(modelA.gender || 'male').toLowerCase() === 'male' ? '👨 Male' : '👩 Female'} • ${modelA.timbre}` : 'Voice A';
+
+  if (bubbleBName) bubbleBName.textContent = modelB ? modelB.name : valB;
+  if (bubbleBDesc) bubbleBDesc.textContent = modelB ? `${(modelB.gender || 'female').toLowerCase() === 'female' ? '👩 Female' : '👨 Male'} • ${modelB.timbre}` : 'Voice B';
+}
+
+if (selectMergerVoiceA) selectMergerVoiceA.addEventListener('change', updateMergerPreviewBubbles);
+if (selectMergerVoiceB) selectMergerVoiceB.addEventListener('change', updateMergerPreviewBubbles);
+
+if (mergerRatioSlider) {
+  mergerRatioSlider.addEventListener('input', () => {
+    const val = parseInt(mergerRatioSlider.value, 10);
+    if (labelMergerRatioVal) labelMergerRatioVal.textContent = `${val}% A / ${100 - val}% B`;
+    if (visualRatioA) visualRatioA.textContent = `${val}%`;
+    if (visualRatioB) visualRatioB.textContent = `${100 - val}%`;
+    if (blendMeterFill) blendMeterFill.style.width = `${val}%`;
+  });
+}
+
+if (mergerPitchSlider && labelMergerPitch) {
+  mergerPitchSlider.addEventListener('input', () => {
+    labelMergerPitch.textContent = `${parseFloat(mergerPitchSlider.value).toFixed(2)}x`;
+  });
+}
+
+if (mergerRateSlider && labelMergerRate) {
+  mergerRateSlider.addEventListener('input', () => {
+    labelMergerRate.textContent = `${parseFloat(mergerRateSlider.value).toFixed(2)}x`;
+  });
+}
+
+if (btnAuditionVoiceA) {
+  btnAuditionVoiceA.addEventListener('click', () => {
+    const valA = selectMergerVoiceA ? selectMergerVoiceA.value : 'google_gemini-puck';
+    const modelA = resolveVoiceModel(valA);
+    const text = modelA?.sampleText || "This is Voice A in the Google Voice Merger.";
+    btnAuditionVoiceA.disabled = true;
+    audioStudio.speakVoiceModel(text, modelA || valA, {
+      onEnd: () => { btnAuditionVoiceA.disabled = false; },
+      onError: () => { btnAuditionVoiceA.disabled = false; },
+    });
+  });
+}
+
+if (btnAuditionVoiceB) {
+  btnAuditionVoiceB.addEventListener('click', () => {
+    const valB = selectMergerVoiceB ? selectMergerVoiceB.value : 'google_gemini-lyra';
+    const modelB = resolveVoiceModel(valB);
+    const text = modelB?.sampleText || "This is Voice B in the Google Voice Merger.";
+    btnAuditionVoiceB.disabled = true;
+    audioStudio.speakVoiceModel(text, modelB || valB, {
+      onEnd: () => { btnAuditionVoiceB.disabled = false; },
+      onError: () => { btnAuditionVoiceB.disabled = false; },
+    });
+  });
+}
+
+if (btnAuditionHybridVoice) {
+  btnAuditionHybridVoice.addEventListener('click', () => {
+    const valA = selectMergerVoiceA ? selectMergerVoiceA.value : 'google_gemini-puck';
+    const valB = selectMergerVoiceB ? selectMergerVoiceB.value : 'google_gemini-lyra';
+    const modelA = resolveVoiceModel(valA);
+    const modelB = resolveVoiceModel(valB);
+    const ratioA = mergerRatioSlider ? parseInt(mergerRatioSlider.value, 10) / 100 : 0.5;
+
+    const pOffset = mergerPitchSlider ? (parseFloat(mergerPitchSlider.value) - 1.0) : 0;
+    const rOffset = mergerRateSlider ? (parseFloat(mergerRateSlider.value) - 1.0) : 0;
+    const gender = selectMergedVoiceGender ? selectMergedVoiceGender.value : 'female';
+
+    const hybrid = audioStudio.mergeGoogleVoices(modelA || valA, modelB || valB, ratioA, {
+      pitchOffset: pOffset,
+      rateOffset: rOffset,
+      gender,
+    });
+
+    const text = inputMergedVoiceDesc?.value.trim() || `Welcome! You are listening to the newly blended hybrid voice with ${Math.round(ratioA * 100)}% ${modelA?.shortName || 'A'} and ${Math.round((1 - ratioA) * 100)}% ${modelB?.shortName || 'B'}.`;
+
+    btnAuditionHybridVoice.disabled = true;
+    btnAuditionHybridVoice.textContent = '🔊 Auditioning Hybrid...';
+
+    audioStudio.speakVoiceModel(text, hybrid, {
+      onEnd: () => {
+        btnAuditionHybridVoice.disabled = false;
+        btnAuditionHybridVoice.textContent = '▶️ Audition Hybrid Voice';
+      },
+      onError: () => {
+        btnAuditionHybridVoice.disabled = false;
+        btnAuditionHybridVoice.textContent = '▶️ Audition Hybrid Voice';
+      }
+    });
+  });
+}
+
+if (btnSaveHybridVoiceToLibrary) {
+  btnSaveHybridVoiceToLibrary.addEventListener('click', async () => {
+    const name = inputMergedVoiceName ? inputMergedVoiceName.value.trim() : '';
+    if (!name) {
+      alert('Please enter a name for your custom hybrid voice.');
+      if (inputMergedVoiceName) inputMergedVoiceName.focus();
+      return;
+    }
+
+    const valA = selectMergerVoiceA ? selectMergerVoiceA.value : 'google_gemini-puck';
+    const valB = selectMergerVoiceB ? selectMergerVoiceB.value : 'google_gemini-lyra';
+    const modelA = resolveVoiceModel(valA);
+    const modelB = resolveVoiceModel(valB);
+    const ratioA = mergerRatioSlider ? parseInt(mergerRatioSlider.value, 10) / 100 : 0.5;
+    const gender = selectMergedVoiceGender ? selectMergedVoiceGender.value : 'female';
+    const desc = inputMergedVoiceDesc ? inputMergedVoiceDesc.value.trim() : '';
+
+    const pOffset = mergerPitchSlider ? (parseFloat(mergerPitchSlider.value) - 1.0) : 0;
+    const rOffset = mergerRateSlider ? (parseFloat(mergerRateSlider.value) - 1.0) : 0;
+
+    const hybrid = audioStudio.mergeGoogleVoices(modelA || valA, modelB || valB, ratioA, {
+      id: `cvoice_${Date.now()}`,
+      name,
+      description: desc || `Custom merged blend of ${modelA?.name || 'A'} and ${modelB?.name || 'B'}.`,
+      gender,
+      pitchOffset: pOffset,
+      rateOffset: rOffset,
+    });
+
+    state.customVoices.unshift(hybrid);
+    localStorage.setItem('clipmerge_custom_voices', JSON.stringify(state.customVoices));
+
+    try {
+      await sqliteService.saveCustomVoice({
+        id: hybrid.id,
+        name: hybrid.name,
+        description: hybrid.description,
+        gender: hybrid.gender,
+        base_voice_a: valA,
+        blend_voice_b: valB,
+        ratio_a: ratioA,
+        pitch: hybrid.pitch,
+        rate: hybrid.rate,
+        timbre: hybrid.timbre,
+      });
+    } catch (err) {
+      console.warn('SQLite save custom voice warning:', err);
+    }
+
+    initAllVoiceSelects();
+    renderVoiceLibraryUI();
+
+    if (mergerSaveStatus) {
+      mergerSaveStatus.style.display = 'block';
+      mergerSaveStatus.innerHTML = `🎉 Successfully saved <strong>"${escapeHtml(name)}"</strong> to your Google Voice Library!`;
+      setTimeout(() => { if (mergerSaveStatus) mergerSaveStatus.style.display = 'none'; }, 4500);
+    }
+
+    alert(`🎉 "${name}" saved to your Voice Library! You can now assign it to characters or use it for master narration.`);
+  });
+}
+
+// ====================================================
+// SEARCHABLE GOOGLE VOICE LIBRARY EXPLORER CONTROLLER
+// ====================================================
+let activeLibGenderFilter = 'all';
+
+function setupVoiceLibraryFilters() {
+  const pills = [
+    { btn: libFilterAll, gender: 'all' },
+    { btn: libFilterMale, gender: 'male' },
+    { btn: libFilterFemale, gender: 'female' },
+  ];
+
+  pills.forEach(p => {
+    if (p.btn) {
+      p.btn.addEventListener('click', () => {
+        activeLibGenderFilter = p.gender;
+        pills.forEach(x => {
+          if (x.btn) x.btn.classList.toggle('active', x.gender === p.gender);
+        });
+        renderVoiceLibraryUI();
+      });
+    }
+  });
+
+  if (libCategorySelect) {
+    libCategorySelect.addEventListener('change', () => {
+      renderVoiceLibraryUI();
+    });
+  }
+
+  if (libSearchInput) {
+    libSearchInput.addEventListener('input', () => {
+      renderVoiceLibraryUI();
+    });
+  }
+}
+
+function renderVoiceLibraryUI() {
+  if (!voiceLibraryGrid) return;
+  const q = libSearchInput ? libSearchInput.value.trim().toLowerCase() : '';
+  const cat = libCategorySelect ? libCategorySelect.value : 'all';
+
+  const allVoices = [
+    ...GOOGLE_VOICE_MODELS,
+    ...state.customVoices.map(cv => ({
+      ...cv,
+      isCustom: true,
+      category: 'hybrid',
+      engine: cv.engine || 'Google Hybrid Blend',
+      avatarBadge: cv.avatarBadge || '🧬',
+      langLabel: cv.langLabel || 'English (US)',
+      recommendedRole: cv.recommendedRole || 'Custom Merged Persona',
+      sampleText: cv.sampleText || `This is a custom merged hybrid voice named ${cv.name}.`,
+    })),
+  ];
+
+  const countAll = allVoices.length;
+  const countMale = allVoices.filter(v => (v.gender || '').toLowerCase() === 'male').length;
+  const countFemale = allVoices.filter(v => (v.gender || '').toLowerCase() === 'female').length;
+
+  if (countLibAll) countLibAll.textContent = countAll;
+  if (countLibMale) countLibMale.textContent = countMale;
+  if (countLibFemale) countLibFemale.textContent = countFemale;
+  if (totalVoiceCountBadge) totalVoiceCountBadge.textContent = countAll;
+
+  let filtered = allVoices;
+  if (activeLibGenderFilter !== 'all') {
+    filtered = filtered.filter(v => (v.gender || '').toLowerCase() === activeLibGenderFilter);
+  }
+
+  if (cat !== 'all') {
+    filtered = filtered.filter(v => {
+      if (cat === 'hybrid') return v.isCustom || v.category === 'hybrid';
+      return v.category === cat;
+    });
+  }
+
+  if (q) {
+    filtered = filtered.filter(v => 
+      (v.name || '').toLowerCase().includes(q) ||
+      (v.description || '').toLowerCase().includes(q) ||
+      (v.recommendedRole || '').toLowerCase().includes(q) ||
+      (v.timbre || '').toLowerCase().includes(q) ||
+      (v.engine || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (filtered.length === 0) {
+    voiceLibraryGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+        <h4>No Voices Found</h4>
+        <p style="font-size: 0.85rem;">Try adjusting your gender, category, or search keywords.</p>
+      </div>
+    `;
+    return;
+  }
+
+  voiceLibraryGrid.innerHTML = '';
+  filtered.forEach(v => {
+    const card = document.createElement('div');
+    card.className = `voice-card ${v.isCustom ? 'voice-card-custom' : ''}`;
+
+    const isMale = (v.gender || '').toLowerCase() === 'male';
+    const genderClass = isMale ? 'pill-male' : 'pill-female';
+    const genderLabel = isMale ? '👨 Male' : '👩 Female';
+
+    card.innerHTML = `
+      <div class="voice-card-top">
+        <div class="voice-card-badge">${v.avatarBadge || '✨'}</div>
+        <div class="voice-card-meta">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <h4 class="voice-card-title">${escapeHtml(v.name)}</h4>
+            <span class="gender-pill ${genderClass} gender-pill-sm">${genderLabel}</span>
+          </div>
+          <span class="voice-engine-badge">${escapeHtml(v.engine || 'Google Cloud')} • ${escapeHtml(v.langLabel || 'English')}</span>
+        </div>
+      </div>
+
+      <p class="voice-card-desc">${escapeHtml(v.description || '')}</p>
+
+      <div class="voice-timbre-tag">
+        <strong>Acoustic Timbre:</strong> ${escapeHtml(v.timbre || 'Natural')} (Pitch: ${Number(v.pitch || 1.0).toFixed(2)}x, Speed: ${Number(v.rate || 1.0).toFixed(2)}x)
+      </div>
+
+      <div class="voice-role-tag">
+        <strong>Ideal Role:</strong> ${escapeHtml(v.recommendedRole || 'Narration / Dialogue')}
+      </div>
+
+      <div class="voice-card-sample">
+        <em>"${escapeHtml(v.sampleText || 'Listen to this voice.')}"</em>
+      </div>
+
+      <div class="voice-card-actions">
+        <button type="button" class="btn btn-xs btn-primary btn-lib-audition" data-id="${v.id}" title="Audition Voice Sample">
+          🔊 Audition
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-lib-blend" data-id="${v.id}" title="Use in Voice Merger">
+          🧬 Blend in Merger
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-lib-assign-char" data-id="${v.id}" title="Assign to Character">
+          🎭 Cast Character
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary btn-lib-use-master" data-id="${v.id}" title="Set as Master Voiceover Voice">
+          🎬 Master Voice
+        </button>
+      </div>
+    `;
+
+    voiceLibraryGrid.appendChild(card);
+  });
+
+  attachVoiceLibraryListeners();
+}
+
+function attachVoiceLibraryListeners() {
+  document.querySelectorAll('.btn-lib-audition').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      const model = resolveVoiceModel(id);
+      if (!model) return;
+      const text = model.sampleText || `Hello! This is ${model.name}.`;
+
+      btn.disabled = true;
+      const orig = btn.innerHTML;
+      btn.innerHTML = '🔊 Speaking...';
+
+      audioStudio.speakVoiceModel(text, model, {
+        onEnd: () => { btn.disabled = false; btn.innerHTML = orig; },
+        onError: () => { btn.disabled = false; btn.innerHTML = orig; },
+      });
+    });
+  });
+
+  document.querySelectorAll('.btn-lib-blend').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      switchAudioSubTab('merger');
+      if (selectMergerVoiceA) {
+        const optionVal = id.startsWith('cvoice_') || id.startsWith('hybrid_') ? id : `google_${id}`;
+        if (selectMergerVoiceA.querySelector(`option[value="${optionVal}"]`)) {
+          selectMergerVoiceA.value = optionVal;
+        } else {
+          selectMergerVoiceA.value = id;
+        }
+        updateMergerPreviewBubbles();
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-lib-assign-char').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      openCharacterModal();
+      if (charVoiceSelect) {
+        const optionVal = id.startsWith('cvoice_') || id.startsWith('hybrid_') ? id : `google_${id}`;
+        if (charVoiceSelect.querySelector(`option[value="${optionVal}"]`)) {
+          charVoiceSelect.value = optionVal;
+        } else {
+          charVoiceSelect.value = id;
+        }
+        updateCharSlidersFromVoice(charVoiceSelect.value);
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-lib-use-master').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      switchAudioSubTab('narration');
+      if (audioVoiceSelect) {
+        const optionVal = id.startsWith('cvoice_') || id.startsWith('hybrid_') ? id : `google_${id}`;
+        if (audioVoiceSelect.querySelector(`option[value="${optionVal}"]`)) {
+          audioVoiceSelect.value = optionVal;
+        } else {
+          audioVoiceSelect.value = id;
+        }
+        const model = resolveVoiceModel(id);
+        if (model) {
+          if (audioPitchSlider) {
+            audioPitchSlider.value = model.pitch || 1.0;
+            if (labelAudioPitch) labelAudioPitch.textContent = `${Number(model.pitch || 1.0).toFixed(2)}x`;
+          }
+          if (audioRateSlider) {
+            audioRateSlider.value = model.rate || 1.0;
+            if (labelAudioRate) labelAudioRate.textContent = `${Number(model.rate || 1.0).toFixed(2)}x`;
+          }
+        }
+      }
+      alert(`Master voice set to ${resolveVoiceModel(id)?.name || id}!`);
+    });
+  });
+}
+
+// ====================================================
+// BACKEND DATA LOADERS (SQLITE + LOCALSTORAGE)
+// ====================================================
+async function loadCharactersFromBackend() {
+  try {
+    const chars = await sqliteService.getCharacters();
+    if (Array.isArray(chars) && chars.length > 0) {
+      state.characters = chars;
+      localStorage.setItem('clipmerge_characters', JSON.stringify(chars));
+    } else {
+      const cached = localStorage.getItem('clipmerge_characters');
+      if (cached) state.characters = JSON.parse(cached);
+    }
+  } catch (err) {
+    console.warn('SQLite load characters warning:', err);
+    const cached = localStorage.getItem('clipmerge_characters');
+    if (cached) state.characters = JSON.parse(cached);
+  }
+
+  if (!state.characters || state.characters.length === 0) {
+    state.characters = [
+      {
+        id: 'char_demo_vikram',
+        name: 'Vikram',
+        role: 'Tech Host & Video Lead',
+        avatar_preset: 'creator',
+        avatar_url: '',
+        gender: 'male',
+        voice_id: 'google_gemini-puck',
+        voice_settings: { pitch: 1.10, rate: 1.10 },
+        script_text: 'Welcome back to ClipMerge AI! Today we are stitching our video clips seamlessly with intelligent character voiceovers.'
+      },
+      {
+        id: 'char_demo_maya',
+        name: 'Maya',
+        role: 'Creative Director',
+        avatar_preset: 'queen',
+        avatar_url: '',
+        gender: 'female',
+        voice_id: 'google_gemini-lyra',
+        voice_settings: { pitch: 1.12, rate: 1.02 },
+        script_text: 'Every single frame tells a story, and the voice brings that story to life with pure crystal resonance.'
+      }
+    ];
+    localStorage.setItem('clipmerge_characters', JSON.stringify(state.characters));
+  }
+
+  if (characterCountBadge) characterCountBadge.textContent = state.characters.length;
+  renderCharactersUI();
+}
+
+async function loadCustomVoicesFromBackend() {
+  try {
+    const voices = await sqliteService.getCustomVoices();
+    if (Array.isArray(voices) && voices.length > 0) {
+      state.customVoices = voices;
+      localStorage.setItem('clipmerge_custom_voices', JSON.stringify(voices));
+    } else {
+      const cached = localStorage.getItem('clipmerge_custom_voices');
+      if (cached) state.customVoices = JSON.parse(cached);
+    }
+  } catch (err) {
+    console.warn('SQLite custom voices fetch warning:', err);
+    const cached = localStorage.getItem('clipmerge_custom_voices');
+    if (cached) state.customVoices = JSON.parse(cached);
+  }
+}
 
 // ====================================================
 // STARTUP INITIALIZATION
 // ====================================================
 updateGeminiInlineStatusUI();
 updateEnhanceResolutionBadge();
+updateSQLiteStatusUI();
+
+// Initialize all voices and custom library
+loadCustomVoicesFromBackend().then(() => {
+  initAllVoiceSelects();
+  renderVoiceLibraryUI();
+  setupVoiceLibraryFilters();
+});
+
+// Load characters and setup filters
+loadCharactersFromBackend().then(() => {
+  setupCharacterFilters();
+});
+
+// ====================================================
+// VIDEO EDITING STATION & AUDIO DSP CONTROLLER
+// ====================================================
+
+// Initialize Video Editing Station
+videoEditorStation.bindUI({
+  previewMonitorContainer: document.getElementById('previewMonitorContainer'),
+  selectAspectRatio: document.getElementById('selectEditorAspect'),
+  selectEditorResolution: document.getElementById('selectEditorResolution'),
+  btnPlayPause: document.getElementById('btnEditorPlayPause'),
+  btnRewind: document.getElementById('btnEditorRewind'),
+  timelineCurrentTime: document.getElementById('timelineCurrentTime'),
+  timelineTotalTime: document.getElementById('timelineTotalTime'),
+  duckingIndicator: document.getElementById('duckingIndicator'),
+  voiceVolumeSlider: document.getElementById('mixerVoiceVol'),
+  voiceVolumeLabel: document.getElementById('labelMixerVoiceVol'),
+  musicVolumeSlider: document.getElementById('mixerMusicVol'),
+  musicVolumeLabel: document.getElementById('labelMixerMusicVol'),
+  chkAutoDucking: document.getElementById('chkAutoDucking'),
+  timelineRulerArea: document.getElementById('timelineRulerArea'),
+  timelineScrubber: document.getElementById('timelineScrubber'),
+  playheadLine: document.getElementById('playheadLine'),
+  trackVideoClips: document.getElementById('trackVideoClips'),
+  trackVoiceover: document.getElementById('trackVoiceover'),
+  trackMusic: document.getElementById('trackMusic'),
+  btnRenderMasterVideo: document.getElementById('btnRenderMasterVideo'),
+  renderModal: document.getElementById('renderMasterModal'),
+  renderProgressFill: document.getElementById('renderMasterProgressFill'),
+  renderStatusText: document.getElementById('renderMasterStatusText'),
+  renderResultArea: document.getElementById('renderMasterResultArea'),
+  renderResultPlayer: document.getElementById('renderMasterResultPlayer'),
+  btnDownloadRenderedMaster: document.getElementById('btnDownloadRenderedMaster'),
+});
+
+videoEditorStation.setMediaElements({
+  videoEl: document.getElementById('editorPreviewVideo'),
+  voiceEl: document.getElementById('editorVoiceAudio'),
+  musicEl: document.getElementById('editorMusicAudio'),
+});
+
+// Send Clips from Video Station to Video Editing Station
+const btnSendClipsToEditor = document.getElementById('btnSendClipsToEditor');
+if (btnSendClipsToEditor) {
+  btnSendClipsToEditor.addEventListener('click', () => {
+    if (state.clips.length === 0) {
+      alert('Please upload some video clips first in the Stitch & AI Editor tab.');
+      return;
+    }
+    videoEditorStation.importClipsFromVideoStation(state.clips);
+    const emptyOverlay = document.getElementById('editorEmptyOverlay');
+    if (emptyOverlay) emptyOverlay.style.display = 'none';
+    switchAppView('viewVideoEditor');
+  });
+}
+
+// Send Voiceover from Audio Studio to Video Editing Station
+const btnSendVoiceToEditor = document.getElementById('btnSendVoiceToEditor');
+if (btnSendVoiceToEditor) {
+  btnSendVoiceToEditor.addEventListener('click', () => {
+    if (!state.generatedAudioBlob) {
+      alert('Please generate or load a voiceover track first.');
+      return;
+    }
+    videoEditorStation.importVoiceoverTrack(state.generatedAudioBlob, 'Voiceover Narration');
+    switchAppView('viewVideoEditor');
+  });
+}
+
+// 48kHz Studio DSP Audio Enhancer & Visualizer
+const btnMasterAudioWithDSP = document.getElementById('btnMasterAudioWithDSP');
+const audioDspVisualizerCanvas = document.getElementById('audioDspVisualizerCanvas');
+
+if (btnMasterAudioWithDSP) {
+  btnMasterAudioWithDSP.addEventListener('click', async () => {
+    if (!state.generatedAudioBlob) {
+      alert('No audio track is currently loaded to master.');
+      return;
+    }
+
+    btnMasterAudioWithDSP.disabled = true;
+    btnMasterAudioWithDSP.textContent = '⏳ Processing 48kHz DSP...';
+
+    try {
+      const mastered = await audioDSP.masterAudio(state.generatedAudioBlob, {
+        highpassFreq: 80,
+        deMudGain: -1.8,
+        presenceGain: 2.5,
+        airGain: 1.5,
+        threshold: -22,
+        ratio: 3.2,
+      });
+
+      state.generatedAudioBlob = mastered.blob;
+      if (state.generatedAudioUrl) URL.revokeObjectURL(state.generatedAudioUrl);
+      state.generatedAudioUrl = URL.createObjectURL(mastered.blob);
+
+      if (audioStudioPlayer) {
+        audioStudioPlayer.src = state.generatedAudioUrl;
+        audioStudioPlayer.style.display = 'block';
+        audioStudioPlayer.load();
+
+        if (audioDspVisualizerCanvas) {
+          audioDspVisualizerCanvas.style.display = 'block';
+          audioDSP.attachVisualizer(audioDspVisualizerCanvas, audioStudioPlayer);
+        }
+      }
+
+      if (btnDownloadAudioTrack) {
+        btnDownloadAudioTrack.href = state.generatedAudioUrl;
+        btnDownloadAudioTrack.download = `voiceover_mastered_48k_${Date.now()}.wav`;
+      }
+
+      if (audioPlayerStatus) {
+        audioPlayerStatus.innerHTML = `<span style="color: var(--success); font-weight: 700;">✨ Mastered at 48 kHz (High-Pass 80Hz + Vocal Presence + Normalization)! Ready to edit or download.</span>`;
+      }
+    } catch (err) {
+      alert(`Mastering failed: ${err.message}`);
+    } finally {
+      btnMasterAudioWithDSP.disabled = false;
+      btnMasterAudioWithDSP.textContent = '✨ Master Audio (48kHz DSP)';
+    }
+  });
+}
+
+// Editing Station Header Import Buttons
+const btnEditorImportClips = document.getElementById('btnEditorImportClips');
+if (btnEditorImportClips) {
+  btnEditorImportClips.addEventListener('click', () => {
+    if (state.clips.length > 0) {
+      const count = videoEditorStation.importClipsFromVideoStation(state.clips);
+      const emptyOverlay = document.getElementById('editorEmptyOverlay');
+      if (emptyOverlay) emptyOverlay.style.display = 'none';
+      alert(`✅ Imported ${count} video clips into Track 1!`);
+    } else {
+      alert('No clips found in the Stitch & AI Editor tab yet. Upload video clips in the first tab to import them here.');
+    }
+  });
+}
+
+const btnEditorImportVoice = document.getElementById('btnEditorImportVoice');
+if (btnEditorImportVoice) {
+  btnEditorImportVoice.addEventListener('click', () => {
+    if (state.generatedAudioBlob) {
+      videoEditorStation.importVoiceoverTrack(state.generatedAudioBlob, 'Voiceover Narration');
+      alert('✅ Voiceover track imported into Track 2!');
+    } else {
+      alert('No voiceover track generated yet. Create speech in the "AI Audio & Voice Studio" tab first.');
+    }
+  });
+}
+
+const btnEditorImportMusic = document.getElementById('btnEditorImportMusic');
+const editorMusicFileInput = document.getElementById('editorMusicFileInput');
+if (btnEditorImportMusic && editorMusicFileInput) {
+  btnEditorImportMusic.addEventListener('click', () => {
+    editorMusicFileInput.click();
+  });
+
+  editorMusicFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      videoEditorStation.importMusicTrack(file, file.name);
+      alert(`✅ Background score "${file.name}" loaded into Track 3!`);
+    }
+  });
+}
+
+const btnCloseRenderMasterModal = document.getElementById('btnCloseRenderMasterModal');
+if (btnCloseRenderMasterModal) {
+  btnCloseRenderMasterModal.addEventListener('click', () => {
+    const modal = document.getElementById('renderMasterModal');
+    if (modal) modal.style.display = 'none';
+  });
+}
+
+// ====================================================
+// IN-APP AUTONOMOUS DIAGNOSTICS RUNNER
+// ====================================================
+window.checkAudioStation = function() {
+  const issues = [];
+  const checks = [];
+
+  const add = (name, passed, detail = '') => {
+    checks.push({ name, passed, detail });
+    if (!passed) issues.push(`${name}: ${detail}`);
+  };
+
+  add('AudioStudio engine instantiated', !!audioStudio, 'AudioStudio class initialized');
+  add('SpeechSynthesis available', 'speechSynthesis' in window, 'Browser speech synthesis API');
+  add('Web Audio API available', 'AudioContext' in window || 'webkitAudioContext' in window, 'AudioContext support');
+  add('AudioDSP engine instantiated', !!audioDSP, 'AudioDSP mastering engine initialized');
+  add('VideoEditorStation instantiated', !!videoEditorStation, 'VideoEditorStation multi-track initialized');
+  add('Lyra tone preset exists', !!(audioStudio && audioStudio.TONE_PRESETS && audioStudio.TONE_PRESETS.lyra), 'TONE_PRESETS.lyra configured');
+  add('Google voice models loaded (20+ models)', !!(GOOGLE_VOICE_MODELS && GOOGLE_VOICE_MODELS.length >= 20), `${GOOGLE_VOICE_MODELS.length} Google voices`);
+  add('Character Cast grid exists', !!document.getElementById('charactersGrid'), 'Character studio grid element');
+  add('Character modal exists', !!document.getElementById('characterModal'), 'Character add/edit modal');
+  add('Voice Merger selects exist', !!document.getElementById('selectMergerVoiceA') && !!document.getElementById('selectMergerVoiceB'), 'Voice merger select dropdowns');
+  add('Voice Library grid exists', !!document.getElementById('voiceLibraryGrid'), 'Voice library explorer grid element');
+  add('Master audio player exists', !!document.getElementById('audioStudioPlayer'), 'Audio player element in DOM');
+  add('Video Editing Station view exists', !!document.getElementById('viewVideoEditor'), 'viewVideoEditor in DOM');
+
+  console.group('🎙️ Audio & Video Stations Diagnostic Agent');
+  console.table(checks);
+  if (issues.length === 0) {
+    console.log('%c✅ Audio Station, DSP Engine & Video Editing Station: ALL CHECKS PASSED!', 'color: #34d399; font-weight: bold; font-size: 1.1em;');
+  } else {
+    console.warn('⚠️ Diagnostic Issues:', issues);
+  }
+  console.groupEnd();
+  return { status: issues.length === 0 ? 'PASS' : 'FAIL', total: checks.length, passed: checks.length - issues.length, issues };
+};
+
+window.runAppDiagnostics = function() {
+  console.log('%c🤖 Running Complete ClipMerge App Verification Agent...', 'color: #818cf8; font-weight: bold;');
+  const audioResults = window.checkAudioStation();
+  
+  const views = ['viewStitchEdit', 'viewVideoEnhance', 'viewImageEnhance', 'viewAudioStudio', 'viewVideoEditor'];
+  const viewChecks = views.map(id => ({ view: id, present: !!document.getElementById(id) }));
+  
+  console.group('📱 Core App Views Check');
+  console.table(viewChecks);
+  console.groupEnd();
+
+  return { audio: audioResults, views: viewChecks };
+};
+
+
 

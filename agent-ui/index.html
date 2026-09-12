@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agent control panel</title>
+    <link rel="stylesheet" href="/agent-ui/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">Standalone agent surface</p>
+        <h1>Agent control panel</h1>
+        <p class="muted">Submit a prompt, inspect the latest status, and configure delivery channels.</p>
+        <label for="access-token">Control-panel access token</label>
+        <input id="access-token" type="password" autocomplete="off"
+          placeholder="Configured as AGENT_UI_TOKEN on the server">
+      </header>
+
+      <section class="card">
+        <h2>Prompt intake</h2>
+        <form id="prompt-form">
+          <label for="prompt">Prompt</label>
+          <textarea id="prompt" name="prompt" maxlength="4000" required
+            placeholder="Tell the agent what to do…"></textarea>
+          <button type="submit">Send prompt</button>
+        </form>
+        <p id="prompt-result" class="result" role="status"></p>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <div>
+            <h2>Agent status</h2>
+            <p id="status-text" class="muted">Loading…</p>
+          </div>
+          <button id="refresh-status" class="secondary" type="button">Refresh</button>
+        </div>
+        <p><a id="status-link" class="muted" hidden target="_blank" rel="noreferrer">Open latest workflow report</a></p>
+        <pre id="status-report" class="report" aria-live="polite"></pre>
+      </section>
+
+      <section class="card">
+        <h2>Notifications</h2>
+        <p class="muted">Recipients are destinations only. Sender credentials stay on the server.</p>
+        <form id="notification-form">
+          <label><input id="email-enabled" type="checkbox" checked> Email</label>
+          <label for="email">Gmail recipient</label>
+          <input id="email" type="email" value="jagath1105@gmail.com"
+            maxlength="254" autocomplete="email">
+          <label><input id="sms-enabled" type="checkbox" checked> SMS</label>
+          <label for="phone">SMS recipient</label>
+          <input id="phone" type="tel" value="+91 7671031414"
+            pattern="\+[0-9 ()-]{7,20}" title="Use an international number, for example +91 7671031414"
+            autocomplete="tel">
+          <button type="submit">Save notification settings</button>
+        </form>
+        <p id="notification-result" class="result" role="status"></p>
+      </section>
+    </main>
+    <script src="/agent-ui/app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,160 @@
+name: Unattended agent runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: Prompt for the unattended job
+        required: true
+        type: string
+      job_id:
+        description: Optional stable job identifier for resume
+        required: false
+        type: string
+  repository_dispatch:
+    types: [agent-job]
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    if: github.event_name != 'issues' || github.event.action == 'opened' || github.event.label.name == 'agent'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AGENT_JOB_ID: ${{ inputs.job_id || github.event.client_payload.job_id || format('issue-{0}', github.event.issue.number) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare artifact directory
+        run: mkdir -p agent-artifacts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install agent
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run unattended job
+        id: run-agent
+        env:
+          AGENT_PROMPT: ${{ inputs.prompt || github.event.client_payload.prompt || github.event.issue.body }}
+          AGENT_JOB_ID: ${{ inputs.job_id || github.event.client_payload.job_id || format('issue-{0}', github.event.issue.number) }}
+          AGENT_COMMAND: ${{ secrets.AGENT_COMMAND }}
+          AGENT_APPROVAL_TOKEN: ${{ secrets.AGENT_APPROVAL_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          import shlex
+          import subprocess
+          from pathlib import Path
+          from agent.checkpoint import CheckpointStore
+          from agent.core import AgentRunner
+          from agent.reporting import AuditReporter
+          from agent.schemas import AuditEvent, JobSpec, PromptSpec
+          from agent.watchdog import HeartbeatMonitor
+
+          prompt = os.environ.get("AGENT_PROMPT", "").strip()
+          if not prompt:
+              raise SystemExit("AGENT_PROMPT is required")
+          job_id = os.environ.get("AGENT_JOB_ID")
+          job = JobSpec(PromptSpec(prompt), **({"job_id": job_id} if job_id else {}))
+          audit = AuditReporter(Path("agent-artifacts/audit.jsonl"))
+          runner = AgentRunner(CheckpointStore(Path("agent-artifacts/checkpoints")),
+                               audit, HeartbeatMonitor(audit.progress))
+          command = os.environ.get("AGENT_COMMAND", "").strip()
+          if not command:
+              raise SystemExit("AGENT_COMMAND secret is required; configure it to invoke the Copilot/Antigravity engine")
+
+          def run_engine(current, checkpoint):
+              command_line = shlex.split(command)
+              if not command_line:
+                  raise RuntimeError("AGENT_COMMAND is empty")
+              completed = subprocess.run(
+                  command_line + [current.prompt.render()],
+                  check=False,
+                  capture_output=True,
+                  text=True,
+                  timeout=current.timeout_seconds,
+              )
+              Path("agent-artifacts/engine.stdout.log").write_text(
+                  completed.stdout, encoding="utf-8")
+              Path("agent-artifacts/engine.stderr.log").write_text(
+                  completed.stderr, encoding="utf-8")
+              audit.record(AuditEvent(current.job_id, "log",
+                                      details={"log": "engine.stdout.log", "artifact": "engine.stdout.log"}))
+              audit.record(AuditEvent(current.job_id, "log",
+                                      details={"log": "engine.stderr.log", "artifact": "engine.stderr.log"}))
+              if completed.returncode:
+                  raise RuntimeError(completed.stderr.strip() or "agent engine failed")
+              return {"output": completed.stdout}
+
+          result = runner.run(job, run_engine)
+          if result.status.value != "succeeded":
+              raise SystemExit(str(result.error or result.status.value))
+          PY
+      - name: Publish durable report to Issue
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPORT_FILE: agent-artifacts/report.json
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads(Path(os.environ["REPORT_FILE"]).read_text()) if Path(os.environ["REPORT_FILE"]).exists() else {}
+          item = report.get(os.environ.get("AGENT_JOB_ID", ""), report)
+          lines = [
+            "## Durable agent report",
+            f"- Status: **{item.get('status', 'unknown')}**",
+            f"- Progress: {item.get('progress') if item.get('progress') is not None else 'indeterminate'}",
+            f"- Stage: `{item.get('stage') or 'unknown'}`; last completed step: `{item.get('last_completed_step') or 'none'}`",
+            f"- Started: {item.get('started_at') or 'n/a'}; updated: {item.get('updated_at') or 'n/a'}",
+            f"- Elapsed: {item.get('elapsed_seconds', 0):.1f}s; retries: {item.get('retries', 0)}",
+            f"- Decisions: {json.dumps(item.get('decisions', []), sort_keys=True)}",
+            f"- Logs/artifacts: {json.dumps(item.get('artifacts', []))}",
+            f"- Full workflow and downloadable report: {os.environ['RUN_URL']}",
+          ]
+          Path("agent-artifacts/issue-report.md").write_text("\n".join(lines), encoding="utf-8")
+          PY
+          gh api "repos/${{ github.repository }}/issues/${ISSUE_NUMBER}/comments" \
+            --method POST --field body="$(cat agent-artifacts/issue-report.md)"
+      - name: Notify terminal result
+        if: always()
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          GMAIL_RECIPIENT: jagath1105@gmail.com
+          SMS_ACCOUNT_SID: ${{ secrets.SMS_ACCOUNT_SID }}
+          SMS_AUTH_TOKEN: ${{ secrets.SMS_AUTH_TOKEN }}
+          SMS_FROM: ${{ secrets.SMS_FROM }}
+          SMS_RECIPIENT: "+91 7671031414"
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess, sys
+          from pathlib import Path
+          job_id = os.environ["AGENT_JOB_ID"]
+          report = {}
+          path = Path("agent-artifacts/report.json")
+          if path.exists():
+              reports = json.loads(path.read_text(encoding="utf-8"))
+              report = reports.get(job_id, reports if "status" in reports else {})
+          status = report.get("status") or "failed"
+          message = "Unattended agent job {} finished with status {}.".format(job_id, status)
+          raise SystemExit(subprocess.call([
+              sys.executable, "-m", "agent.notify_cli", "--job-id", job_id,
+              "--status", status, "--message", message,
+              "--report-url", os.environ["GITHUB_RUN_URL"],
+          ]))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-artifacts-${{ github.run_id }}
+          path: agent-artifacts/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,6 +1,7 @@
 {
   "version": 2,
   "rewrites": [
+    { "source": "/agent-ui", "destination": "/agent-ui/index.html" },
     { "source": "/", "destination": "/clipmerge/index.html" },
     { "source": "/clipmerge", "destination": "/clipmerge/index.html" },
     { "source": "/samples/(.*)", "destination": "/clipmerge/samples/" },
